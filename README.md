@@ -15,4 +15,5 @@ To test the code, go to the `origami.ipynb` file and run the cells. You should s
 <img width="250" alt="input desired design" src="https://github.com/hyuncat/DNA-origami/assets/114366569/74d61487-a0a8-49a8-b080-f584e780a191">
 
 ### Visualize
-<img width="223" alt="Screenshot 2024-04-12 at 5 14 08 AM" src="https://github.com/hyuncat/DNA-origami/assets/114366569/6c77e270-7686-41ff-97be-cbfb871e3b85">
+<img width="188" alt="vispy" src="https://github.com/hyuncat/DNA-origami/assets/114366569/351abb50-1616-4026-a4bb-2798ca2eb45d">
+
