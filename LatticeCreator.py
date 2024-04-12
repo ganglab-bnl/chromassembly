@@ -15,7 +15,6 @@ from tkinter import *
 from tkinter import font, ttk
 import customtkinter as ctk
 
-import sv_ttk
 
 class LatticeCreatorGUI(ctk.CTk):
     def __init__(self):
