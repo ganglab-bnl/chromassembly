@@ -51,8 +51,7 @@ class Visualizer:
                     color = self.colordict[self.lattice[i, j, k]]
                     colors.append(color.rgba)
                     coords.append((x, y, z))
-                    # Printing to find a nice one
-                    print(f'Voxel at ({x}, {y}, {z}) has color {color.rgba}')
+                    # print(f'Voxel at ({x}, {y}, {z}) has color {color.rgba}')
 
         coords = np.concatenate([coords, [[0, 0, 0]]], axis=0)
         colors = np.concatenate([colors, [[1, 0, 0, 1]]] * (len(coords) - len(colors)), axis=0)
