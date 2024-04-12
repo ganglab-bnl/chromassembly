@@ -20,6 +20,13 @@ class Visualizer:
 
         self.colordict = {
             0: Color("#AAAAAA80"),
+            1: Color("#3781A9"),
+            2: Color("#57ACC1"),
+            3: Color("#7ECD61"),
+            4: Color("#BBE355"),
+            5: Color("#F9E273"),
+            6: Color("#EAAB83"),
+            7: Color("#DC758F"),
         }
 
     def run(self):
@@ -28,7 +35,7 @@ class Visualizer:
         """
         #TODO: implement diff b/w interactive and non-interactive (add when needed)
 
-        for i in range(1, 10):
+        for i in range(8, 10):
             color = Color((np.random.rand(), np.random.rand(), np.random.rand()))
             color.alpha = 1.0
             self.colordict[i] = color
@@ -45,7 +52,7 @@ class Visualizer:
                     colors.append(color.rgba)
                     coords.append((x, y, z))
                     # Printing to find a nice one
-                    # print(f'Voxel at ({x}, {y}, {z}) has color {color.rgba}')
+                    print(f'Voxel at ({x}, {y}, {z}) has color {color.rgba}')
 
         coords = np.concatenate([coords, [[0, 0, 0]]], axis=0)
         colors = np.concatenate([colors, [[1, 0, 0, 1]]] * (len(coords) - len(colors)), axis=0)
