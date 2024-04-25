@@ -17,3 +17,19 @@ To test the code, go to the `origami.ipynb` file and run the cells. You should s
 ### Visualize
 <img width="188" alt="vispy" src="https://github.com/hyuncat/DNA-origami/assets/114366569/351abb50-1616-4026-a4bb-2798ca2eb45d">
 
+---
+
+### Installation notes:
+
+You will need to install tkinter if you don't already have it installed, along with pyqt5.
+If the vispy library is giving you errors with quartz, go to `vispy/ext/cocoapy.py` and change:
+
+```
+quartz = cdll.LoadLibrary(util.find_library('quartz'))
+```
+
+to
+
+```
+quartz = cdll.LoadLibrary('/System/Library/Frameworks/Quartz.framework/Quartz')
+```

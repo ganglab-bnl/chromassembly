@@ -17,6 +17,7 @@ import customtkinter as ctk
 
 
 class LatticeCreatorGUI(ctk.CTk):
+    #TODO: Add axes
     def __init__(self):
         super().__init__()
 
