@@ -1,5 +1,4 @@
 import numpy as np
-from LatticeCreator import LatticeCreatorGUI
 from math import ceil
 
 class Voxel:
@@ -195,6 +194,7 @@ class SurroundingsManager:
 
 
 if __name__ == '__main__':
+    from visualizations.LatticeCreator import LatticeCreatorGUI
     # Create a unit cell
     input_lattice, isUnitCell = LatticeCreatorGUI().run()
     lattice = Lattice(input_lattice)
