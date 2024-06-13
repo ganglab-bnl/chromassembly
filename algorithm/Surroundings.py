@@ -10,9 +10,7 @@ class SurroundingsManager:
         Manager class for creating, transforming, and comparing VoxelSurroundings
         matrices for a given lattice design.
         """
-        self.max_len = max(np.shape(lattice.MinDesign))
-        self.lattice = lattice # ref to Lattice object
-
+        self.lattice = lattice
         self.FullSurroundings = self.initFullSurroundings(lattice)
 
 
@@ -30,6 +28,7 @@ class SurroundingsManager:
 
         # Get dimensions of MinDesign (we are tiling MinDesign)
         z_len, x_len, y_len = lattice.MinDesign.shape
+        self.MinDesign_dimensions = [z_len, x_len, y_len]
 
         # I imagine z=layers, x=rows, y=columns
         z_repeats = ceil(final_len / z_len)
@@ -46,28 +45,25 @@ class SurroundingsManager:
             y_repeats += 1
 
         # Tile the surroundings matrix [dim]repeats times in each direction
-        self.repeats = [z_repeats, x_repeats, y_repeats]
-        full_surroundings = np.tile(lattice.MinDesign, self.repeats)
+        self.tile_repeats = [z_repeats, x_repeats, y_repeats]
+        full_surroundings = np.tile(lattice.MinDesign, self.tile_repeats)
 
         return full_surroundings
 
 
     def getVoxelSurroundings(self, voxel: Voxel):
         """
-        Get the SurroundingsMatrix for a given voxel in the UnitCell, which stores 
-        tuples (voxel.material, voxel.index) for each value in the SurroundingsMatrix.
+        Get the VoxelSurroundings for a given voxel in the UnitCell, in which each value 
+        represents the voxel.material for each voxel and its VoxelSurroundings.
         @param:
-            - voxel: The Voxel object to build SurroundingsMatrix around
-            - unit_cell: The UnitCell object
+            - voxel: The Voxel object to build VoxelSurroundings around
         @return:
-            - surroundings_matrix: 3D numpy array of tuples (voxel.material, voxel.index) 
+            - VoxelSurroundings: 3D numpy array of tuples (voxel.material, voxel.index) 
         """
-        # if self.md_index == 0:
-        #surround_dim = +/- (max_dim/2) in all xyz directions, not including voxel
 
         # How far down to go in each direction
-        og_zlen, og_xlen, og_ylen = np.shape(self.lattice.MinDesign)
-        z_repeats, x_repeats, y_repeats = self.repeats
+        og_zlen, og_xlen, og_ylen = self.MinDesign_dimensions # original dimensions of MinDesign
+        z_repeats, x_repeats, y_repeats = self.tile_repeats # how many times MinDesign is repeated in xyz directions in FullSurroundings
 
         # Get halfway points for each direction
         # (x_0, y_0, z_0) corresponds to the (0,0,0) position of the middle MinDesign
@@ -83,9 +79,9 @@ class SurroundingsManager:
         max_og_len = max(og_zlen, og_xlen, og_ylen)
         extend_amt = floor(max_og_len / 2)
 
-        VoxelSurrounding = self.FullSurroundings[(vox_z-extend_amt) : (vox_z+extend_amt+1),
+        VoxelSurroundings = self.FullSurroundings[(vox_z-extend_amt) : (vox_z+extend_amt+1),
                                                  (vox_x-extend_amt) : (vox_x+extend_amt+1),
                                                  (vox_y-extend_amt) : (vox_y+extend_amt+1)]
 
-        return VoxelSurrounding
+        return VoxelSurroundings
 
