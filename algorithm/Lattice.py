@@ -53,18 +53,19 @@ class Lattice:
         @return:
             - is_unit_cell: bool
         """
+        z_len, x_len, y_len = lattice.shape
         x_repeat, y_repeat, z_repeat = False, False, False
         is_unit_cell = False
         
         # Check if z, x, or y layers are repeated
-        if np.array_equal(lattice[0, :, :], lattice[-1, :, :]):
+        if np.array_equal(lattice[0, :, :], lattice[-1, :, :]) and z_len > 2:
             z_repeat = True
-        if np.array_equal(lattice[:, 0, :], lattice[:, -1, :]):
+        if np.array_equal(lattice[:, 0, :], lattice[:, -1, :]) and x_len > 2:
             x_repeat = True
-        if np.array_equal(lattice[:, :, 0], lattice[:, :, -1]): 
+        if np.array_equal(lattice[:, :, 0], lattice[:, :, -1]) and y_len > 2: 
             y_repeat = True
         
-        # If all layers are repeated, the lattice is a unit cell
+        # If all layers are repeated (and have > 2 dimlength), the lattice is a unit cell
         if x_repeat and y_repeat and z_repeat:
             is_unit_cell = True
         
