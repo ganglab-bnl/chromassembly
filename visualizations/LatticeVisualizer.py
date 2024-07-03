@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+import vispy
+vispy.use('PyQt5')
 from vispy import app, scene
 from vispy.color import Color
 
@@ -30,6 +32,18 @@ class LatticeVisualizer:
         }
 
         self.p_dist = 40 # Distance between each visualized particle (ball)
+
+    def create_axes(self):
+        axis_end_points = [
+            (self.n_layers * self.p_dist, 0, 0),
+            (0, self.n_rows * self.p_dist, 0),
+            (0, 0, self.n_columns * self.p_dist)
+        ]
+        labels = ['X', 'Y', 'Z']
+        for point, label in zip(axis_end_points, labels):
+            text = scene.visuals.Text(label, pos=point, color='black', font_size=20)
+            text.parent = self.view.scene
+
 
     def run(self):
         """
