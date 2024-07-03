@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.rightbar = ToolBar(self, orientation=Qt.Orientation.Vertical,
                                 style=Qt.ToolButtonStyle.ToolButtonIconOnly, icon_size=(24, 24))
         self.rightbar.add_button("Settings", "resources/icons/windows/shell32-315.ico", self.settings_window)
-        self.rightbar.add_button("Privacy", "resources/icons/windows/shell32-167.ico", self.privacy_window)
+        self.rightbar.add_button("Help", "resources/icons/windows/shell32-167.ico", self.help_window)
         self.addToolBar(Qt.ToolBarArea.RightToolBarArea, self.rightbar)
 
     def update_status_bar(self):
@@ -80,5 +80,5 @@ class MainWindow(QMainWindow):
     def settings_window(self):
         print("Settings window")
 
-    def privacy_window(self):
-        print("Privacy window")
+    def help_window(self):
+        print("Help window")
