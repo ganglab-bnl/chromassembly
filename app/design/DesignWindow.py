@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame
-from ..widgets.SetDimensions import SetDimensions
-from ..widgets.FillDimensions import FillDimensions
+from .SetDimensions import SetDimensions
+from .FillDimensions import FillDimensions
 
 class DesignWindow(QWidget):
     def __init__(self):

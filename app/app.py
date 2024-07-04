@@ -4,14 +4,14 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QCheckBox, QMessageBox, QTabWidget)
 import numpy as np
 
-from .windows.DesignWindow import DesignWindow
-from .windows.VisualizeWindow import VisualizeWindow
+from .design.DesignWindow import DesignWindow
+from .visualize.VisualizeWindow import VisualizeWindow
 from .widgets.MenuBar import MenuBar
 from .widgets.StatusBar import StatusBar
 from .widgets.ToolBar import ToolBar
-from ..utils.config import AppConfig
+from .config import AppConfig
 
-class MainWindow(QMainWindow):
+class LatticeDesignerApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(AppConfig.APP_NAME)

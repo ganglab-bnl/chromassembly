@@ -15,6 +15,7 @@ class BondPainter:
         self.lattice = lattice
         self.sm = SurroundingsManager
         self.symmetry_manager = SymmetryManager
+        self.SymmetryDict = SymmetryManager.SymmetryDict.deepcopy()
 
         self.n_colors = 0
     
@@ -49,13 +50,17 @@ class BondPainter:
         Loop to check if painting the new color on the voxel violates any
         previous established symmetries.
         """
+        ValidSymmetries = self.getValidSymmetries(self.symmetry_manager.SymmetryDict, voxel1)
+        for partner_voxel, symmetry_list in ValidSymmetries.items():
+            for symmetry_label in symmetry_list:
+                #TODO: Change Symmetry obj to store all symmetries in a dict
 
 
     def getValidSymmetries(SymmetryDict: dict, voxel: Voxel):
         """
         Create a ValidSymmetries dict where the key is a partner_voxel with some valid 
         symmetry with input voxel. The value is a list of symmetry labels that are valid
-        (ex: "90° rotation in X axis")
+        (ex: "90° rotation in X axis",.)
         contains a specific voxel and the Symmetry.hasAnySymmetry() is True.
         @param:
         - symmetry_dict: dict, where keys are frozensets of integers (voxel.index) 
