@@ -40,7 +40,7 @@ class VisualizeWindow(QWidget):
                            (0, 0, 1), (0, 0, -1)]  # +/- z
         
         # Create the lattice
-        self.create_lattice(3, 3, 3)
+        self.create_lattice(np.zeros((3, 3, 3)))
         self.view.setBackgroundColor(QColor("#efefef"))
 
         # Add axes
@@ -80,17 +80,56 @@ class VisualizeWindow(QWidget):
         self.view.setCameraPosition(distance=distance)
 
 
-    def create_lattice(self, x_dim, y_dim, z_dim):
-        """Creates a default lattice with the specified dimensions"""
-        self.adjust_camera_to_fit_lattice(x_dim, y_dim, z_dim)
-        for x in range(x_dim):
-            for y in range(y_dim):
-                for z in range(z_dim):
+    # def create_lattice(self, x_dim, y_dim, z_dim):
+    #     """Creates a default lattice with the specified dimensions"""
+    #     self.adjust_camera_to_fit_lattice(x_dim, y_dim, z_dim)
+    #     for x in range(x_dim):
+    #         for y in range(y_dim):
+    #             for z in range(z_dim):
+    #                 # Create all bonds for the voxel
+    #                 voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
+    #                     x*self.voxel_distance, 
+    #                     y*self.voxel_distance, 
+    #                     z*self.voxel_distance
+    #                 )
+    #                 for shaft, arrow in zip(voxel_shafts, voxel_arrows):
+    #                     self.view.addItem(shaft)
+    #                     self.view.addItem(arrow)
+
+    #                 # Create the voxel object
+    #                 voxel = Voxel.create_voxel(
+    #                     x*self.voxel_distance, 
+    #                     y*self.voxel_distance, 
+    #                     z*self.voxel_distance,
+    #                     self.colordict[0]
+    #                 )
+    #                 self.view.addItem(voxel) # Add it on top of the bonds
+    def delete_lattice(self):
+        """Deletes the current lattice from the view"""
+        self.view.items = []
+
+    def create_lattice(self, lattice: np.array):
+        """Creates a lattice from a 3D numpy array"""
+        # Delete the current lattice
+        self.view.items = []
+
+        # Create the new lattice
+        self.add_axes() # Re-add the axes
+        n_layers, n_rows, n_columns = lattice.shape
+        self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
+
+        for lay in range(n_layers-1, -1, -1):
+            for row in range(n_rows):
+                for col in range(n_columns):
+                    # Turn numpy indices into coordinates
+                    new_coords = self.transform_indices_to_coordinates(lattice.shape, (lay, row, col))
+                    new_x, new_y, new_z = new_coords
+
                     # Create all bonds for the voxel
                     voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
-                        x*self.voxel_distance, 
-                        y*self.voxel_distance, 
-                        z*self.voxel_distance
+                        new_x*self.voxel_distance, 
+                        new_y*self.voxel_distance, 
+                        new_z*self.voxel_distance
                     )
                     for shaft, arrow in zip(voxel_shafts, voxel_arrows):
                         self.view.addItem(shaft)
@@ -98,12 +137,32 @@ class VisualizeWindow(QWidget):
 
                     # Create the voxel object
                     voxel = Voxel.create_voxel(
-                        x*self.voxel_distance, 
-                        y*self.voxel_distance, 
-                        z*self.voxel_distance,
-                        self.colordict[0]
+                        new_x*self.voxel_distance, 
+                        new_y*self.voxel_distance, 
+                        new_z*self.voxel_distance,
+                        self.colordict[lattice[lay, row, col]]
                     )
-                    self.view.addItem(voxel) # Add it on top of the bonds
+                    print(f"Adding voxel at {new_x}, {new_y}, {new_z} with color {lattice[new_z, new_x, new_y]}")
+                    self.view.addItem(voxel)
 
+    def transform_indices_to_coordinates(self, array_shape, np_coordinates):
+        """
+        Transforms np_coordinates to coordinates where the bottom left corner 
+        of the bottom-most layer is (0, 0, 0). Note that coordinate dimensions are (x, y, z)
+        while numpy array dimensions are (z, y, x).
+        @param:
+            - array_shape: Tuple of ints
+            - index: Tuple of ints
+        @return: coordinates: Tuple of ints
+        """
+        z_max, y_max, x_max = array_shape
+        z, y, x = np_coordinates
 
-   
+        # Transform indices: reverse z and y, no change to x
+        # (See diagram for more details)
+        new_z = z_max - 1 - z
+        new_y = y_max - 1 - y
+        new_x = x
+
+        coordinates = np.array([new_x, new_y, new_z])
+        return coordinates

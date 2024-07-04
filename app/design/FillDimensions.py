@@ -1,11 +1,15 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QScrollArea
-
+import numpy as np
 class FillDimensions(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parentWidget = parent
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
+        self.initUI()
+
+    def initUI(self):
         self.label = QLabel("Fill Lattice Dimensions")
         self.layout.addWidget(self.label)
 
@@ -23,6 +27,10 @@ class FillDimensions(QWidget):
 
     def updateGrid(self, rows, columns, layers):
         # Clear existing widgets in the layout except self.label
+        self.n_row = rows
+        self.n_col = columns
+        self.n_lay = layers
+
         for i in reversed(range(self.gridLayout.count())): 
             layoutItem = self.gridLayout.itemAt(i)
             widget = layoutItem.widget()
@@ -60,3 +68,16 @@ class FillDimensions(QWidget):
             widget = self.gridLayout.itemAt(i).widget()
             if isinstance(widget, QLineEdit):
                 widget.setText('0')
+    
+    def saveLattice(self):
+        """Save the lattice data to a numpy array to visualize in
+        the VisualizeWindow."""
+        lattice = []
+        for i in range(self.gridLayout.count()):
+            widget = self.gridLayout.itemAt(i).widget()
+            if isinstance(widget, QLineEdit):
+                lattice.append(int(widget.text()))
+        lattice = np.array(lattice).reshape(self.n_lay, self.n_row, self.n_col)
+        
+        # Check if the parent widget has a 'lattice' attribute and set it
+        self.parentWidget.setLattice(lattice)

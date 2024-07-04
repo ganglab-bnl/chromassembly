@@ -12,7 +12,7 @@ class Voxel:
             smooth=True, 
             color=color,
             shader='shaded', 
-            drawEdges=True
+            drawEdges=False
         )
         voxel.translate(x, y, z)
         return voxel

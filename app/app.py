@@ -26,9 +26,12 @@ class LatticeDesignerApp(QMainWindow):
         self.tabs = QTabWidget()
         self.layout.addWidget(self.tabs, stretch=1)  # Ensure it expands to fill space
 
-        # Initialize tabs with custom widgets
-        self.tabs.addTab(DesignWindow(), "Design")
-        self.tabs.addTab(VisualizeWindow(), "Visualize")
+        # Initialize design and visualize tabs
+        self.DesignWindow = DesignWindow()
+        self.tabs.addTab(self.DesignWindow, "Design")
+
+        self.VisualizeWindow = VisualizeWindow()
+        self.tabs.addTab(self.VisualizeWindow, "Visualize")
 
         # Toolbars
         self.create_toolbars()
@@ -39,6 +42,7 @@ class LatticeDesignerApp(QMainWindow):
         
         # Connect the currentChanged signal
         self.tabs.currentChanged.connect(self.update_status_bar)
+        self.DesignWindow.latticeSaved.connect(self.VisualizeWindow.create_lattice)
     
     def create_toolbars(self):
         # Top Toolbar

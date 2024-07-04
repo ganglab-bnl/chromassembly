@@ -1,12 +1,23 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame
+from PyQt6.QtCore import pyqtSignal
+import numpy as np
 from .SetDimensions import SetDimensions
 from .FillDimensions import FillDimensions
 
 class DesignWindow(QWidget):
+    latticeSaved = pyqtSignal(np.ndarray)
+
     def __init__(self):
         super().__init__()
         self.mainLayout = QHBoxLayout()
         self.setLayout(self.mainLayout)
+        # --------------------- #
+        # Shared variables
+        # --------------------- #
+        self.n_rows = 3
+        self.n_columns = 3
+        self.n_layers = 3
+        self.lattice = np.zeros((self.n_rows, self.n_columns, self.n_layers))
 
         # --------------------- #
         # Side panel
@@ -34,7 +45,7 @@ class DesignWindow(QWidget):
         # --------------------- #
         # Main content
         # --------------------- #
-        self.fillDimensionsWidget = FillDimensions()
+        self.fillDimensionsWidget = FillDimensions(parent=self)
         self.mainLayout.addWidget(self.fillDimensionsWidget)
 
         # --------------------- #
@@ -44,6 +55,7 @@ class DesignWindow(QWidget):
         self.setDimensionsWidget.dimensionsChanged.connect(self.fillDimensionsWidget.updateGrid)
         self.setDimensionsWidget.clearLatticeClicked.connect(self.fillDimensionsWidget.clearGrid)
         self.setDimensionsWidget.fillZerosClicked.connect(self.fillDimensionsWidget.fillZeros)
+        self.setDimensionsWidget.saveLatticeClicked.connect(self.fillDimensionsWidget.saveLattice)
         
         # Initialize fillDimensionsWidget with default values
         self.fillDimensionsWidget.updateGrid(3, 3, 3)
@@ -51,3 +63,8 @@ class DesignWindow(QWidget):
     # Slot method to handle the dimensionsChanged signal
     def updateDimensions(self, rows, columns, layers):
         self.fillDimensionsWidget.updateGrid(rows, columns, layers)
+
+    def setLattice(self, lattice):
+        self.lattice = lattice 
+        self.latticeSaved.emit(self.lattice)
+        print(f'Saved lattice:\n{self.lattice}\n')

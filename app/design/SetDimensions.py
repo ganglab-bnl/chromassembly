@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout, QFrame
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
 class SetDimensions(QWidget):
     dimensionsChanged = pyqtSignal((int, int, int))
