@@ -68,3 +68,53 @@ class DesignWindow(QWidget):
         self.lattice = lattice 
         self.latticeSaved.emit(self.lattice)
         print(f'Saved lattice:\n{self.lattice}\n')
+
+
+
+class RunDesigner:
+
+    def __init__(self, app=None):
+        """Runs the window for a given lattice design"""
+        import sys
+        from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar
+        from PyQt6.QtCore import Qt
+        from ..config import AppConfig
+
+        if app is None:
+            self.app = QApplication(sys.argv)
+        else:
+            self.app = app
+
+        AppConfig.initialize()
+        self.mainWindow = QMainWindow()
+        self.mainWindow.setWindowTitle("Lattice Visualizer")
+        self.mainWindow.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set the layout for it
+        self.centralWidget = QWidget()
+        self.mainLayout = QVBoxLayout(self.centralWidget)
+        self.mainWindow.setCentralWidget(self.centralWidget)
+
+        # Initialize VisualizeWindow and add it to the layout
+        self.window = DesignWindow()
+        self.mainLayout.addWidget(self.window)
+        self.window.latticeSaved.connect(self.lattice_saved)
+        self.lattice = None  # Placeholder for the lattice
+
+        # Create and configure the toolbar
+        self.toolbar = QToolBar("Main Toolbar", self.mainWindow)
+        self.toolbar.setOrientation(Qt.Orientation.Horizontal)
+        self.toolbar.addAction("Exit", self.close)
+        self.mainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
+
+    def run(self):
+        self.mainWindow.show()
+        self.app.exec()
+        return self.lattice  # Return the lattice after the app exits
+
+    def lattice_saved(self, lattice):
+        self.lattice = lattice  # Store the lattice
+        self.app.quit()  # Quit the application
+
+    def close(self):
+        self.app.quit()

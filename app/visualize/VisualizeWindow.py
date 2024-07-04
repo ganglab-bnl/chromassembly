@@ -5,6 +5,7 @@ from PyQt6.QtGui import QColor
 import numpy as np
 import math
 
+from ..widgets.ToolBar import ToolBar
 from .Voxel import Voxel
 from .Bond import Bond
 
@@ -79,31 +80,6 @@ class VisualizeWindow(QWidget):
         # Set the camera position to ensure the entire lattice is visible
         self.view.setCameraPosition(distance=distance)
 
-
-    # def create_lattice(self, x_dim, y_dim, z_dim):
-    #     """Creates a default lattice with the specified dimensions"""
-    #     self.adjust_camera_to_fit_lattice(x_dim, y_dim, z_dim)
-    #     for x in range(x_dim):
-    #         for y in range(y_dim):
-    #             for z in range(z_dim):
-    #                 # Create all bonds for the voxel
-    #                 voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
-    #                     x*self.voxel_distance, 
-    #                     y*self.voxel_distance, 
-    #                     z*self.voxel_distance
-    #                 )
-    #                 for shaft, arrow in zip(voxel_shafts, voxel_arrows):
-    #                     self.view.addItem(shaft)
-    #                     self.view.addItem(arrow)
-
-    #                 # Create the voxel object
-    #                 voxel = Voxel.create_voxel(
-    #                     x*self.voxel_distance, 
-    #                     y*self.voxel_distance, 
-    #                     z*self.voxel_distance,
-    #                     self.colordict[0]
-    #                 )
-    #                 self.view.addItem(voxel) # Add it on top of the bonds
     def delete_lattice(self):
         """Deletes the current lattice from the view"""
         self.view.items = []
@@ -142,7 +118,7 @@ class VisualizeWindow(QWidget):
                         new_z*self.voxel_distance,
                         self.colordict[lattice[lay, row, col]]
                     )
-                    print(f"Adding voxel at {new_x}, {new_y}, {new_z} with color {lattice[new_z, new_x, new_y]}")
+                    # print(f"Adding voxel at {new_x}, {new_y}, {new_z} with color {lattice[new_z, new_x, new_y]}")
                     self.view.addItem(voxel)
 
     def transform_indices_to_coordinates(self, array_shape, np_coordinates):
@@ -166,3 +142,57 @@ class VisualizeWindow(QWidget):
 
         coordinates = np.array([new_x, new_y, new_z])
         return coordinates
+    
+
+    def cleanup_gl_resources(self):
+        """Removes items from view and clears the items list 
+           (hopefully preventing jupyter kernel crash on rerun)"""
+        for item in self.view.items:
+            self.view.removeItem(item)
+
+        self.view.items = []
+    
+class RunVisualizer:
+    
+    def __init__(self, lattice, app=None):
+        """Runs the window for a given lattice design"""
+        import sys
+        from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar
+        from PyQt6.QtCore import Qt
+        from ..config import AppConfig
+
+        if app is None:
+            self.app = QApplication(sys.argv)
+        else:
+            self.app = app
+
+        AppConfig.initialize()
+
+        self.mainWindow = QMainWindow()
+        self.mainWindow.setWindowTitle("Lattice Visualizer")
+        self.mainWindow.setGeometry(100, 100, 800, 600)
+
+        # Create a central widget and set the layout for it
+        self.centralWidget = QWidget()
+        self.mainLayout = QVBoxLayout(self.centralWidget)
+        self.mainWindow.setCentralWidget(self.centralWidget)
+
+        # Initialize VisualizeWindow and add it to the layout
+        self.window = VisualizeWindow()
+        self.mainLayout.addWidget(self.window)
+
+        # Create and configure the toolbar
+        self.toolbar = QToolBar("Main Toolbar", self.mainWindow)
+        self.toolbar.setOrientation(Qt.Orientation.Horizontal)
+        self.toolbar.addAction("Exit", self.close)
+        self.mainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
+        
+        # Assuming create_lattice is a method within VisualizeWindow to setup the lattice
+        self.window.create_lattice(lattice)
+
+        self.mainWindow.show()
+        self.app.exec()
+
+    def close(self):
+        self.window.cleanup_gl_resources()
+        self.app.quit()

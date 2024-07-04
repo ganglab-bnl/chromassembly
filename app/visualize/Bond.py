@@ -1,6 +1,7 @@
 import pyqtgraph.opengl as gl
 from .Voxel import Voxel
 import numpy as np
+from ..config import AppConfig
 
 class Bond:
     # Parameters for drawing bonds as arrows
@@ -47,12 +48,21 @@ class Bond:
             radius=[cls.shaft_radius, cls.shaft_radius], 
             length=cls.shaft_length
         )
-        shaft = gl.GLMeshItem(
-            meshdata=shaft_mesh, 
-            smooth=True, 
-            color=color, 
-            shader='shaded'
-        )
+
+        # Draw with/without shader depending on environment
+        if AppConfig.RUNNING_IN_JUPYTER:
+            shaft = gl.GLMeshItem(
+                meshdata=shaft_mesh, 
+                smooth=True, 
+                color=color
+            )
+        else:
+            shaft = gl.GLMeshItem(
+                meshdata=shaft_mesh, 
+                smooth=True, 
+                shader='shaded',
+                color=color
+            )
 
         # Rotate the shaft to face the correct direction
         shaft_rotation = cls.rotate_dict[direction.tobytes()]
@@ -60,8 +70,26 @@ class Bond:
         shaft.translate(x, y, z) # Move the shaft to face out from center of voxel
 
         # Create the arrowhead
-        arrowhead_mesh = gl.MeshData.cylinder(rows=2, cols=5, radius=[cls.arrowhead_radius, 0.0], length=cls.arrowhead_length)
-        arrowhead = gl.GLMeshItem(meshdata=arrowhead_mesh, smooth=True, color=(0.5, 0.5, 0.5, 1), shader='shaded')
+        arrowhead_mesh = gl.MeshData.cylinder(
+            rows=2, cols=5, 
+            radius=[cls.arrowhead_radius, 0.0], 
+            length=cls.arrowhead_length
+        )
+        
+        # Draw with/without shader depending on environment
+        if AppConfig.RUNNING_IN_JUPYTER:
+            arrowhead = gl.GLMeshItem(
+                meshdata=arrowhead_mesh, 
+                smooth=True, 
+                color=(0.5, 0.5, 0.5, 1)
+            )
+        else:
+            arrowhead = gl.GLMeshItem(
+                meshdata=arrowhead_mesh, 
+                smooth=True, 
+                shader='shaded',
+                color=(0.5, 0.5, 0.5, 1)
+            )
 
         # Rotate the arrowhead to face the correct direction
         arrowhead_rotation = cls.rotate_dict[direction.tobytes()]
