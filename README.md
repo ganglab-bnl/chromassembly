@@ -25,10 +25,10 @@ python main.py
 
 ### Visualize
 
-<img width="550" alt="Screenshot 2024-07-04 at 2 53 03 AM" src="https://github.com/hyuncat/DNA-origami/assets/114366569/3f59cfc1-af86-4073-bb7a-8431713f43af">
+<img width="550" alt="Screenshot 2024-07-04 at 3 13 07 AM" src="https://github.com/hyuncat/DNA-origami/assets/114366569/2a6417be-05c4-47c1-a184-82003608b079">
 
 #### View controls:
-- Left button drag: Rotates the scene around a central point
+- Left button drag / Arrow keys: Rotates the scene around a central point
 - Middle button drag: Pan the scene by moving the central “look-at” point within the x-y plane
 - Middle button drag + CTRL: Pan the scene by moving the central “look-at” point along the z axis
 - Wheel spin: zoom in/out
