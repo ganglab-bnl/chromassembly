@@ -2,34 +2,34 @@
 
 Code in-progress for Gang Lab
 
-**Goal:** Find minimum unique voxels and bond colors to create a desired unit cell.
+This algorithm utilizes the symmetry of a 'voxel' containing a particular cargo in 3D space, and combinatorically searches for the minimum number of unique DNA bonds or 'colors' needed to facilitate the self-assembly of such a particle design.
 
-## To test the current code:
+## The algorithm
 
-To test the code, go to the `origami.ipynb` file and run the cells. You should see a simple GUI pop up, fill in the desired design information and it will save the output as a file containing a numpy array in `lattice.npy`. This is loaded in the next cell (you may have to rerun the cell) and is built out in an interactive visualization using VisPy.
+1. Build out the 'Surroundings'
+2. Create SymmetryDf
+3. Iteratively color bonds using symmetries
+
+## GUI application
+
+To test out a simple GUI to create and visualize this lattice in 3D space, clone this repo, `/cd` into the root of this directory, and run:
+
+```shell
+python main.py
+```
 
 ### Set desired dimensions
-<img width="250" alt="set dimension" src="https://github.com/hyuncat/DNA-origami/assets/114366569/0af6ad36-ce98-4189-97ef-cec6b288a95a">
 
-### Input values
-<img width="250" alt="input desired design" src="https://github.com/hyuncat/DNA-origami/assets/114366569/74d61487-a0a8-49a8-b080-f584e780a191">
+<img width="550" alt="Screenshot 2024-07-04 at 2 52 41 AM" src="https://github.com/hyuncat/DNA-origami/assets/114366569/425904d5-8a42-4e1e-9b0a-fbde2c91ddef">
+
 
 ### Visualize
-<img width="188" alt="vispy" src="https://github.com/hyuncat/DNA-origami/assets/114366569/351abb50-1616-4026-a4bb-2798ca2eb45d">
 
----
+<img width="550" alt="Screenshot 2024-07-04 at 2 53 03 AM" src="https://github.com/hyuncat/DNA-origami/assets/114366569/3f59cfc1-af86-4073-bb7a-8431713f43af">
 
-### Installation notes:
-
-You will need to install tkinter if you don't already have it installed, along with pyqt5.
-If the vispy library is giving you errors with quartz, go to `vispy/ext/cocoapy.py` and change:
-
-```
-quartz = cdll.LoadLibrary(util.find_library('quartz'))
-```
-
-to
-
-```
-quartz = cdll.LoadLibrary('/System/Library/Frameworks/Quartz.framework/Quartz')
-```
+#### View controls:
+- Left button drag: Rotates the scene around a central point
+- Middle button drag: Pan the scene by moving the central “look-at” point within the x-y plane
+- Middle button drag + CTRL: Pan the scene by moving the central “look-at” point along the z axis
+- Wheel spin: zoom in/out
+- Wheel + CTRL(or CMD): change field-of-view angle
