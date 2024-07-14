@@ -247,11 +247,3 @@ class RotationManager:
                          **RotationManager.double_rotations}
         return all_rotations
     
-
-if __name__ == '__main__':
-    # Test SymmetryDf class
-    SymDf = SymmetryDf()
-    double_rotations = SymDf.init_double_rotations()
-    for index, rotation in enumerate(double_rotations.keys()):
-        print(f'Rotation {index+1}: {rotation}')
-    print(f'Number of double rotations: {len(double_rotations)}')
