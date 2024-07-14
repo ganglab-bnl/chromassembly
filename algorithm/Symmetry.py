@@ -1,253 +1,257 @@
 import numpy as np
 import pandas as pd
-from math import ceil, floor
-from dataclasses import dataclass
-from collections import defaultdict
 
 from .Voxel import Voxel
 from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
 
-class Symmetry:
+class SymmetryDf:
     """
-    Class storing all symmetries between two Voxels
-    Attributes:
-        voxelPair: frozenset of two voxels
-        translation: bool
-        single_rotations: dictionary of {"rotation": bool}
-        double_rotations: dictionary of {"rotation": bool}
+    Class which stores all combinations of voxel pairs and their symmetries.
+
+    @attr:
+        - Lattice: Lattice object
+        - SurroundingsManager: SurroundingsManager object
+        - symmetry_operations: Dictionary of all possible symmetry operations
+        - symmetry_df: Pandas DataFrame object containing all voxel pairs and their symmetries
+    
+    @methods:
+    (internal)
+        - init_symmetry_df: Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
+        - compute_all_symmetries: Compute all possible symmetries between all 2-combinations of voxels
+        - make_voxel_pair_label: Convert frozenset to string for use in representing voxel pairs in Symmetry
+    (external)
+        - symlist: Get the list of symmetries for a specific voxel pair
+        - symdict: Get a dictionary of all possible symlists containing the Voxel object
     """
-    def __init__(self, voxelPair: frozenset):
-        self.voxelPair = voxelPair
-        self.translation = None  # bool, initialized as None
-        self.single_rotations = {}
-        self.double_rotations = {}
-        self.reflections = {}
-    
-    def setSymmetry(self, trans_type: str, trans_label: str, result: bool):
-        """
-        Set the symmetry result for the voxel pair
-        Example usage: 
-            symmetry_obj.setSymmetry('single_rotations', '90° Rotation in X axis', True)
-        """
-        if trans_type == 'translation':
-            self.translation = result
-        elif trans_type == 'single_rotation':
-            self.single_rotations[trans_label] = result
-        elif trans_type == 'double_rotation':
-            self.double_rotations[trans_label] = result
-        elif trans_type == 'reflection':
-            self.reflections[trans_label] = result
-    
-    def getSymmetry(self, trans_type: str, trans_label: str):
-        """
-        Get the symmetry result for the voxel pair
-        Example usage:
-            symmetry_obj.getSymmetry('single_rotations', '90° Rotation in X axis')
-        """
-        if trans_type == 'translation':
-            return self.translation
-        elif trans_type == 'single_rotation':
-            return self.single_rotations.get(trans_label, None)
-        elif trans_type == 'double_rotation':
-            return self.double_rotations.get(trans_label, None)
-    
-    def hasAnySymmetry(self):
-        """
-        Check if the voxel pair shares any kind of symmetry at all.
-        @return: bool
-        """
-        return any([self.translation, self.single_rotations, self.double_rotations, self.reflections])
-    
-    def getValidSymmetries(self):
-        """
-        Get the labels of all True symmetries for the voxel pair.
-        """
-        symmetries = []
-        if self.translation:
-            symmetries.append('Translation')
-            
-        # List comprehensions append only symmetries that are True
-        symmetries += [sym for sym, isTrue in self.single_rotations.items() if isTrue]
-        symmetries += [sym for sym, isTrue in self.double_rotations.items() if isTrue]
-        symmetries += [sym for sym, isTrue in self.reflections.items() if isTrue]
-
-        return symmetries
-
-class SymmetryManager:
     def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager):
         """
-        Manager class for performing symmetry operations on VoxelSurroundings
+        Initialize the SymmetryDf object.
         """
+        # Store references to lattice and SurroundingsManager objects for use in symmetry comparisons
         self.Lattice = lattice
         self.SurroundingsManager = SurroundingsManager
-        self.SymmetryDict = self.initSymmetryDict()
 
-        self.translation = {
-            'translation': lambda x: x # Identity function
-        }
-        self.single_rotations = {
-            '90° rotation in X axis': lambda x: np.rot90(x, 1, (0, 1)),
-            '180° Rotation in X axis': lambda x: np.rot90(x, 2, (0, 1)),
-            '270° Rotation in X axis': lambda x: np.rot90(x, 3, (0, 1)),
-            '90° Rotation in Y axis': lambda x: np.rot90(x, 1, (0, 2)),  
-            '180° Rotation in Y axis': lambda x: np.rot90(x, 2, (0, 2)),  
-            '270° Rotation in Y axis': lambda x: np.rot90(x, 3, (0, 2)),  
-            '90° Rotation in Z axis': lambda x: np.rot90(x, 1, (1, 2)),
-            '180° Rotation in Z axis': lambda x: np.rot90(x, 2, (1, 2)),
-            '270° Rotation in Z axis': lambda x: np.rot90(x, 3, (1, 2))
-        }
-        # Example usage:
-        # rotated_array = self.single_rotations['90° Rotation in x axis'](array)
-
-        self.double_rotations = self.initDoubleRotation_dict()
-
-        self.reflections = { # Make an option to be able to consider reflections or not
-            'Reflection in X plane': lambda x: np.flip(x, 0),
-            'Reflection in Y plane': lambda x: np.flip(x, 1),
-            'Reflection in Z plane': lambda x: np.flip(x, 2)
-        }
+        # Create dictionary of all possible symmetry operations
+        self.symmetry_operations = RotationManager.init_all_rotations()
         
+        # Initialize symmetry_df
+        self.symmetry_df = self.init_symmetry_df()
+
+        # Compute all symmetries, filling symmetry_df in place
+        self.compute_all_symmetries()
+
+
+    def init_symmetry_df(self) -> pd.DataFrame:
+        """
+        Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
+        to be filled later.
+        @return:
+            - symmetry_df: Pandas DataFrame object
+        """
+        # Create a list of all possible voxel pairs
+        voxel_pairs_set = set()
+        for voxel1 in self.Lattice.voxel_list:
+            for voxel2 in self.Lattice.voxel_list:
+                voxel_pairs_set.add(frozenset([voxel1.index, voxel2.index]))
         
+        # Convert the set of frozensets to a list of formatted strings
+        # E.g., "frozenset({0, 1})" -> "(0, 1)"
+        sorted_voxel_pairs_set = sorted(voxel_pairs_set) # Sort lexicographically
+        voxel_pairs = [self.make_voxel_pair_label(pair) for pair in sorted_voxel_pairs_set]
 
-    def initSymmetryDict(self):
-        """
-        Initialize self.SymmetryDict to have empty Symmetry objects for each voxel_pair combination
-        """
-        SymmetryDict = defaultdict(lambda: None)
+        # Create a dataframe containing True or False for each symmetry operation as the column names
+        symmetry_df = pd.DataFrame(index=voxel_pairs, columns=self.symmetry_operations.keys())
+        # symmetry_df = symmetry_df.fillna(None) # Fill NaN values with None
 
-        for voxel1 in self.Lattice.VoxelDict.values():
-            for voxel2 in self.Lattice.VoxelDict.values():
-                # The key to index dict and create Symmetry objects with
-                voxel_pair = frozenset([voxel1, voxel2])
-                # Initialize {voxel_pair, Symmetry} in SymmetryDict if not already present
-                if voxel_pair not in SymmetryDict or SymmetryDict[voxel_pair] is None:
-                    SymmetryDict[voxel_pair] = Symmetry(voxel_pair)
-
-        return SymmetryDict
-    
-    def initDoubleRotation_dict(self):
-        """
-        Initialize double_rotations to contain all possible combinations of single_rotations,
-        but excluding double rotations on the same axis.
-        """
-        double_rotations = {}
-        for rotation1 in self.single_rotations.keys():
-            for rotation2 in self.single_rotations.keys():
-                # Get the second to last word in the string (the axis)
-                rotation1_axis = rotation1.split(' ')[-2]
-                rotation2_axis = rotation2.split(' ')[-2]
-                # Only consider double rotation if they are on different axes
-                if rotation1_axis != rotation2_axis:
-                    double_rotations[f'{rotation1} + {rotation2}'] = lambda x: self.single_rotations[rotation2](self.single_rotations[rotation1](x))
-        return double_rotations
+        return symmetry_df
     
     
-
-    def checkAllSymmetries(self):
+    def compute_all_symmetries(self):
         """
-        Check all symmetries for all pairs of voxels in the lattice.
-        (Sorry it's a little hard to read now, will modularize later)
+        Compute all possible symmetries between all 2-combinations of voxels
+        in the Lattice.MinDesign. Fills self.symmetry_df in place with the results.
         """
-        self.fillTransformations('translation')
-        self.fillTransformations('single_rotation')
-        self.fillTransformations('double_rotation')
-    
-
-    def fillTransformations(self, trans_type: str):
-        """
-        Fills Symmetry objects in SymmetryDict with booleans representing truthiness 
-        of all transformations of a particular type, for all pairs of voxels in the lattice
-
-        @param:
-            - trans_type: the transformation type to check for, corresponding to either
-              'translation', 'single_rotation' or 'double_rotation'
-        @return: void
-        """
-        if trans_type == 'translation':
-            transformations = self.translation
-        elif trans_type == 'single_rotation':
-            transformations = self.single_rotations
-        elif trans_type == 'double_rotation':
-            transformations = self.double_rotations
-        
-        for trans_label, trans_function in transformations.items():
+        for sym_label, sym_function in self.symmetry_operations.items():
 
             # Loop through all possible voxel pairs
-            for voxel1 in self.Lattice.VoxelDict.values():
+            for voxel1 in self.Lattice.voxel_list:
 
                 # Transform surroundings of voxel1 once per symmetry
                 voxel1_surroundings = self.SurroundingsManager.getVoxelSurroundings(voxel1)
-                transformed_voxel1_surroundings = trans_function(voxel1_surroundings)
+                transformed_voxel1_surroundings = sym_function(voxel1_surroundings)
 
-                for voxel2 in self.Lattice.VoxelDict.values():
+                for voxel2 in self.Lattice.voxel_list:
                     # Make voxel pair to index into SymmetryDict
-                    voxel_pair = frozenset([voxel1, voxel2])
-                    symmetry_obj = self.SymmetryDict[voxel_pair] # Get symmetry object for the pair
+                    voxel_pair = frozenset([voxel1.index, voxel2.index])
+                    voxel_pair_label = self.make_voxel_pair_label(voxel_pair) # index with str
 
-                    # Skip if symmetry has already been checked
-                    if symmetry_obj.getSymmetry(trans_type, trans_label) is not None:
-                        continue
+                    # print(f'Checking symmetry for {voxel_pair_label} with {sym_label}...') # debug
+    
+                    symmetry_already_computed = not pd.isna(self.symmetry_df.loc[voxel_pair_label, sym_label])
+
+                    if symmetry_already_computed:
+                        continue # Symmetry already exists in symmetry_df
 
                     # Check symmetry:
-                    # Two Voxels are symmetric if their surroundings are the same after one is transformed
+                    # Two voxels are symmetric if their surroundings are the same after one is transformed
                     voxel2_surroundings = self.SurroundingsManager.getVoxelSurroundings(voxel2)
                     has_symmetry = np.array_equal(transformed_voxel1_surroundings, voxel2_surroundings) 
 
-                    symmetry_obj.setSymmetry(trans_type, trans_label, has_symmetry) # Append result to symmetry object
-                    self.SymmetryDict[voxel_pair] = symmetry_obj # Add to SymmetryDict
+                    self.symmetry_df.loc[voxel_pair_label, sym_label] = has_symmetry # Store the result in symmetry_df
 
 
-    def makeSymmetryDf(self):
+    def symlist(self, voxel1: int, voxel2: int) -> list[str]:
         """
-        Create a DataFrame from the SymmetryDict (for debugging)
+        Get the list of symmetries for a specific voxel pair
+        @param:
+            - voxel1: Voxel.index for the first voxel
+            - voxel2: Voxel.index for the second voxel (can be the same as voxel1)
+        @return:
+            - symlist: List of symmetry labels that are valid for the voxel pair
+                -> ex: ['90° X-axis', '180° Y-axis']
         """
-        columns = ['Voxel Pair'] + list(self.translation.keys()) + list(self.single_rotations.keys()) + list(self.double_rotations.keys())
-        symmetry_df = []
-        trans_types = ['translation', 'single_rotation', 'double_rotation']
+        voxel_pair = frozenset([voxel1, voxel2])
+        voxel_pair_label = self.make_voxel_pair_label(voxel_pair)
+        all_symmetries = self.symmetry_df.loc[voxel_pair_label]
+        valid_symmetries = all_symmetries[all_symmetries == True].index
+        symlist = list(valid_symmetries)
+        return symlist
+    
+    def symdict(self, voxel: int) -> dict[str, list]:
+        """
+        Get a dictionary of all possible symlists containing the Voxel object
 
-        for voxel_pair, symmetry_obj in self.SymmetryDict.items():
-            # Generate a tuple of voxel indices
-            indices_tuple = tuple(voxel.index for voxel in voxel_pair)
-            row = [indices_tuple]
+        @param:
+            - voxel: Voxel.index (int) to find all possible symlists for
+        @return:
+            - symdict: Dictionary of all voxel pairs with the given voxel 
+                       which have symlists of non-zero length
+                -> ex: symdict(voxel1)
+                    {"(0, 1)": ['90° X-axis', '180° Y-axis'],
+                     "(1, 4)": ['90° Z-axis', '270° X-axis']}
+        """
+        symdict = {}
+        for voxel2 in self.Lattice.voxel_list:
+            current_symlist = self.symlist(voxel, voxel2.index)
+            # Only add symlists for voxel pairs with valid symmetries
+            if len(current_symlist) > 0:
+                voxel_pair = frozenset([voxel, voxel2.index])
+                voxel_pair_label = self.make_voxel_pair_label(voxel_pair)
+                symdict[voxel_pair_label] = current_symlist
+        return symdict
+    
 
-            row.append(symmetry_obj.translation) # Append translation result (bool)
+    @staticmethod
+    def make_voxel_pair_label(voxel_pair: frozenset) -> str:
+        """
+        Convert frozenset to string for use in representing voxel pairs in SymmetryDf
+        E.g., "frozenset({0, 1})" -> "(0, 1)"
 
-            for sym in self.single_rotations.keys():
-                # Fetch the result using the dictionary
-                result = symmetry_obj.single_rotations.get(sym, 'hi')  # Default to None if not found
-                row.append(result)
+        @param:
+            - voxel_pair: a frozenset of two voxel.indices
+        @return:
+            - string: str, "(voxel1.index, voxel2.index)"
+        """
+        # Convert to sorted list for consistency
+        sorted_vpair_list = sorted(voxel_pair) 
+        # Convert each integer in list to str, join with ", ", then wrap in parentheses
+        frozen_str = "(" + ", ".join(map(str, sorted_vpair_list)) + ")" 
+        return frozen_str
+    
+    def print_all_symdicts(self) -> None:
+        """
+        Print all possible symdicts for all voxels in the Lattice.MinDesign.
+        """
+        for voxel in self.Lattice.voxel_list:
+            print(f'Voxel {voxel.index}\n---\nCoordinates: {voxel.coordinates} Material: {voxel.material}')
+            print('Symmetries:')
+            for voxel_pair, symlist in self.symdict(voxel.index).items():
+                print(f'{voxel_pair}: {symlist}')
+            print('\n')
+    
+
+class RotationManager:
+    """Class to initialize and manage all rotation transformations"""
+
+    # Initialize dictionaries for transformation functions
+    translation = {
+        'translation': lambda x: x # Identity function
+    }
+    single_rotations = {
+        '90° X-axis': lambda x: np.rot90(x, 1, (0, 1)),
+        '180° X-axis': lambda x: np.rot90(x, 2, (0, 1)),
+        '270° X-axis': lambda x: np.rot90(x, 3, (0, 1)),
+        '90° Y-axis': lambda x: np.rot90(x, 1, (0, 2)),  
+        '180° Y-axis': lambda x: np.rot90(x, 2, (0, 2)),  
+        '270° Y-axis': lambda x: np.rot90(x, 3, (0, 2)),  
+        '90° Z-axis': lambda x: np.rot90(x, 1, (1, 2)),
+        '180° Z-axis': lambda x: np.rot90(x, 2, (1, 2)),
+        '270° Z-axis': lambda x: np.rot90(x, 3, (1, 2))
+    }
+    double_rotations = {}
+
+    @classmethod
+    def init_double_rotations(cls):
+        """
+        Initialize double_rotations to contain all possible combinations of single_rotations,
+        but excluding double rotations on the same axis.
+        @return:
+            - double_rotations: Dictionary of lambda functions for double rotations
+                                {"label1 + label2": lambda x: rotation2(rotation1(x))}
+        """
+        frozen_double_rotations = [] # List to store frozensets of double rotations (avoids duplicates)
+
+        for label1 in cls.single_rotations.keys():
+            for label2 in cls.single_rotations.keys():
+                # Create a frozen set of the pair of rotation labels
+                rotation_pair = frozenset([label1, label2])
+
+                # Get the last word in string (the axis) from each rotation label
+                rotation1_axis = label1.split(' ')[-1] 
+                rotation2_axis = label2.split(' ')[-1]
+
+                # Only consider double rotation if they are on different axes and not already considered
+                if rotation1_axis != rotation2_axis and rotation_pair not in frozen_double_rotations:
+                    frozen_double_rotations.append(rotation_pair)
+        
+        # Iterate through list of non-repeating double rotations and create a dictionary of lambda functions
+        double_rotations = {}
+        for rotation_pair in frozen_double_rotations:
+            label1, label2 = rotation_pair
+            rotation1, rotation2 = cls.single_rotations[label1], cls.single_rotations[label2]
+
+            double_rotations[f'{label1} + {label2}'] = \
+                        lambda x, rotation1=rotation1, rotation2=rotation2: rotation2(rotation1(x))
             
-            for sym in self.double_rotations.keys():
-                result = symmetry_obj.double_rotations.get(sym, 'hi')
-                row.append(result)
+        # Sort the dictionary by key
+        sorted_double_rotations = {key: double_rotations[key] for key in sorted(double_rotations)}
 
-            symmetry_df.append(row)
-
-        # Create DataFrame from collected data
-        SymmetryDf = pd.DataFrame(symmetry_df, columns=columns)
-        return SymmetryDf
-
-
+        cls.double_rotations = sorted_double_rotations
+    
+    @staticmethod
+    def init_all_rotations() -> dict[str, callable]:
+        """
+        Initialize all possible rotations for symmetry operations
+        @return:
+            - all_rotations: Dictionary of all possible rotations
+        
+        @example:
+            {'translation': lambda x: x, 
+            '90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), 
+            ...}
+        """
+        RotationManager.init_double_rotations()
+        all_rotations = {**RotationManager.translation, 
+                         **RotationManager.single_rotations, 
+                         **RotationManager.double_rotations}
+        return all_rotations
+    
 
 if __name__ == '__main__':
-    # Doesn't work yet because of import voodoo :( sorry
-    print("SymmetryManager tests\n---\n")
-
-    input_lattice = np.load('lattice.npy')
-    print(f'Input lattice:\n{input_lattice}\n')
-
-    lattice = Lattice(input_lattice)
-    print(f'Min design:\n{lattice.MinDesign}\n')
-    print(f'Voxels:\n{lattice.VoxelDict}\n')
-    print(f'Voxel indices:\n{[voxel.index for voxel in lattice.VoxelDict.values()]}\n')
-
-    surr_manager = SurroundingsManager(lattice)
-    print(f'Full surroundings:\n{surr_manager.FullSurroundings}\n')
-    # print(f'VoxelSurroundings for voxel 0:\n{surr_manager.getVoxelSurroundings(lattice.voxels[0])}\n')
-    # print(f'VoxelSurroundings for voxel 1:\n{surr_manager.getVoxelSurroundings(lattice.voxels[1])}\n')
-
-    sym_manager = SymmetryManager(lattice, surr_manager)
-    sym_manager.checkAllSymmetries()
-    print(f'SymmetryDict:\n{sym_manager.SymmetryDict}\n')
-
+    # Test SymmetryDf class
+    SymDf = SymmetryDf()
+    double_rotations = SymDf.init_double_rotations()
+    for index, rotation in enumerate(double_rotations.keys()):
+        print(f'Rotation {index+1}: {rotation}')
+    print(f'Number of double rotations: {len(double_rotations)}')

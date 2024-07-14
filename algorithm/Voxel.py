@@ -1,22 +1,22 @@
 import numpy as np
 class Voxel:
-    def __init__(self, material, np_coordinates, coordinates, index):
+    def __init__(self, index, material, np_index, coordinates):
         """
         A Voxel object containing a particular material and location 
         in the desired Lattice.
         @param:
+            - index: Voxel 'number' in the Lattice.VoxelDict
             - material: int, the material cargo of a voxel
                 -> 0: empty
                 -> 1=silver, 2=gold, 3=(...) etc.
             - np_coordinates: Voxel's coordinates in the Lattice.MinDesign np.array
             - coordinates: Voxel's coordinates in MinDesign -> Cartesian space 
                       (where bottom left corner of bottom layer is 0,0,0)
-            - index: Voxel's index in the Lattice.voxels list
         """
-        self.material = material
-        self.np_coordinates = np_coordinates
-        self.coordinates = coordinates
         self.index = index
+        self.material = material
+        self.np_index = np_index
+        self.coordinates = coordinates
 
         # Each Voxel contains Vertex and Bond objects in each direction
         # self.vertex_directions = ['+x', '-x', '+y', '-y', '+z', '-z'] # For octahedral voxels
@@ -38,7 +38,7 @@ class Voxel:
             new_bond = Bond(vertex=new_vertex)
             new_vertex.bond = new_bond
             # Create dictionary entry for the vertex
-            vertices[coords.tobytes()] = new_vertex
+            vertices[tuple(coords)] = new_vertex
         return vertices
 
 class Vertex:
@@ -47,7 +47,7 @@ class Vertex:
         A Vertex object associated with a Voxel parent and connected to a Bond.
         @param:
             - voxel: The parent Voxel object
-            - coordinates: 3-dimensional tuple, coordinate of the vertex wrt. voxel @ (0, 0, 0)
+            - coordinates: 3-dimensional tuple, coordinate of the vertex wrt. voxel @ [0, 0, 0]
             - bond: Reference to the Bond object attached to this vertex
             - vertex_partner: Reference to the Vertex object that this vertex 
                               connects to within the lattice
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     sys.path.append('..')
     from visualizations.LatticeCreator import LatticeCreatorGUI
     from visualizations.LatticeVisualizer import LatticeVisualizer
-    from .Lattice import Lattice
+    from .archive.old_lattice import Lattice
     from .Surroundings import SurroundingsManager
 
     # Create a unit cell

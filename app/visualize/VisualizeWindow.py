@@ -94,6 +94,7 @@ class VisualizeWindow(QWidget):
         n_layers, n_rows, n_columns = lattice.shape
         self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
 
+        index = 0
         for lay in range(n_layers-1, -1, -1):
             for row in range(n_rows):
                 for col in range(n_columns):
@@ -113,11 +114,12 @@ class VisualizeWindow(QWidget):
 
                     # Create the voxel object
                     voxel = Voxel.create_voxel(
-                        new_x*self.voxel_distance, 
-                        new_y*self.voxel_distance, 
-                        new_z*self.voxel_distance,
-                        self.colordict[lattice[lay, row, col]]
+                        x=new_x*self.voxel_distance, 
+                        y=new_y*self.voxel_distance, 
+                        z=new_z*self.voxel_distance,
+                        color=self.colordict[lattice[lay, row, col]]
                     )
+                    index += 1
                     # print(f"Adding voxel at {new_x}, {new_y}, {new_z} with color {lattice[new_z, new_x, new_y]}")
                     self.view.addItem(voxel)
 

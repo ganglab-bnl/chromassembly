@@ -72,9 +72,9 @@ class SurroundingsManager:
         y_0 = floor(x_repeats / 2) * og_xlen
 
         # Get voxel's new coordinates within middle MinDesign
-        vox_z = z_0 + voxel.coordinates[0]
-        vox_x = x_0 + voxel.coordinates[1]
-        vox_y = y_0 + voxel.coordinates[2]
+        vox_z = z_0 + voxel.np_index[0]
+        vox_x = x_0 + voxel.np_index[1]
+        vox_y = y_0 + voxel.np_index[2]
 
         max_og_len = max(og_zlen, og_ylen, og_xlen)
         extend_amt = floor(max_og_len / 2)

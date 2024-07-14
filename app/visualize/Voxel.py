@@ -25,7 +25,6 @@ class Voxel:
             shader='shaded',
             drawEdges=False
         )
-
         
         voxel.translate(x, y, z)
         return voxel

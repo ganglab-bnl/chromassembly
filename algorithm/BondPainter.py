@@ -4,7 +4,7 @@ import pandas as pd
 from .Voxel import Voxel, Bond
 from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
-from .Symmetry import SymmetryManager, Symmetry
+from .Symmetry import SymmetryDf
 
 
 class BondPainter:
@@ -54,7 +54,7 @@ class BondPainter:
         for partner_voxel, symmetry_list in ValidSymmetries.items():
             for symmetry_label in symmetry_list:
                 #TODO: Change Symmetry obj to store all symmetries in a dict
-
+                pass
 
     def getValidSymmetries(SymmetryDict: dict, voxel: Voxel):
         """
