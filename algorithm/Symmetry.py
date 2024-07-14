@@ -141,6 +141,40 @@ class SymmetryDf:
                 symdict[voxel_pair_label] = current_symlist
         return symdict
     
+    def partner_symdict(self, voxel: int) -> dict[int, list]:
+        """
+        Get a symdict where the keys contain only the partner voxel's index
+
+        @param:
+            - voxel: Voxel.index (int) to find all possible symlists for
+            - symdict: Dictionary of all voxel pairs with the given voxel
+        @return:
+            - partner_symdict: Dictionary of all voxel pairs with the given voxel 
+                       and its partner voxel which have symlists of non-zero length
+                -> ex: partner_symdict(voxel1, symdict)
+                    {0: ['90° X-axis', '180° Y-axis'],
+                     4: ['90° Z-axis', '270° X-axis']}
+        """
+        symdict = self.symdict(voxel)
+        partner_symdict = {}
+        for voxel_pair_label, symlist in symdict.items():
+            voxel_pair_list = SymmetryDf.parse_voxel_pair_label(voxel_pair_label)
+
+            if len(voxel_pair_list) == 1:
+                partner = voxel
+            
+            else:
+                voxel1, voxel2 = voxel_pair_list
+                # Which one is the partner?
+                if voxel == voxel1:
+                    partner = voxel2
+                elif voxel == voxel2:
+                    partner = voxel1
+                
+            partner_symdict[partner] = symlist
+        
+        return partner_symdict
+    
 
     @staticmethod
     def make_voxel_pair_label(voxel_pair: frozenset) -> str:
@@ -158,6 +192,22 @@ class SymmetryDf:
         # Convert each integer in list to str, join with ", ", then wrap in parentheses
         frozen_str = "(" + ", ".join(map(str, sorted_vpair_list)) + ")" 
         return frozen_str
+    
+    @staticmethod
+    def parse_voxel_pair_label(voxel_pair_label: str) -> list:
+        """
+        Convert string to frozenset for use in representing voxel pairs in SymmetryDf
+        E.g., "(0, 1)" -> frozenset({0, 1})
+
+        @param:
+            - voxel_pair_label: str, "(voxel1.index, voxel2.index)"
+        @return:
+            - voxel1, voxel2: list of ints, [voxel1.index, voxel2.index] or [voxel1.index]
+        """
+        # Remove parentheses and split by ", " to get a list of strings
+        voxel_pair_list = voxel_pair_label[1:-1].split(", ")
+        voxel_pair_list = map(int, voxel_pair_list)
+        return list(voxel_pair_list)
     
     def print_all_symdicts(self) -> None:
         """

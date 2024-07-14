@@ -6,21 +6,85 @@ from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
 from .Symmetry import SymmetryDf
 
+class Mesovoxel:
+    def __init__(self, Lattice, SymmetryDf):
+        """
+        Mesovoxel to manipulate set of structural / complementary voxels as we paint.
+        """
+        self.Lattice = Lattice
+        self.SymmetryDf = SymmetryDf
+        self.structural_voxels, self.complementary_voxels = self.init_mesovoxel(Lattice)
+
+    def init_mesovoxel(self, Lattice: Lattice):
+        """
+        Initialize a list of structural voxels.
+        """
+        structural_voxels = []
+        complementary_voxels = []
+
+        for voxel in Lattice.voxel_list:
+
+            if structural_voxels == []:
+                structural_voxels.append(voxel)
+                continue
+
+            partner_symdict = self.SymmetryDf.partner_symdict(voxel.index)
+
+            for partner_voxel_index, symlist in partner_symdict.items():
+
+                # If voxel has symmetry with a structural voxel already in the list
+                # we add it to the list of complementary voxels
+                has_symmetry_with_structural_voxel = False
+                for structural_voxel in structural_voxels:
+                    if partner_voxel_index == structural_voxel.index:
+                        print(f'Adding voxel {voxel.index} to complementary_voxels\n---')
+                        print(f'Has the following symmetries with voxel {structural_voxel.index}:\n{symlist}\n')
+                        complementary_voxels.append(voxel)
+                        has_symmetry_with_structural_voxel = True
+                        break
+
+                if has_symmetry_with_structural_voxel:
+                    break
+            
+            if not has_symmetry_with_structural_voxel:
+                structural_voxels.append(voxel) # No symmetries w/ current structural_voxels
+        
+        return structural_voxels, complementary_voxels
 
 class BondPainter:
-    def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager, SymmetryManager: SymmetryManager):
+    def __init__(self, Lattice: Lattice, 
+                 SurroundingsManager: SurroundingsManager, 
+                 SymmetryDf: SymmetryDf):
         """
         Manager class for coloring bonds between voxels in a lattice.
         """
-        self.lattice = lattice
-        self.sm = SurroundingsManager
-        self.symmetry_manager = SymmetryManager
-        self.SymmetryDict = SymmetryManager.SymmetryDict.deepcopy()
+        self.Lattice = Lattice
+        self.SM = SurroundingsManager
+        self.SymmetryDf = SymmetryDf
+        # self.Mesovoxel = Mesovoxel(Lattice, SymmetryDf)
 
-        self.n_colors = 0
+        self.n_colors = 0 # Count of total # colors (not including complementary) used to paint the MinDesign
     
+    def paint_mesovoxel(self, Mesovoxel: Mesovoxel):
+        """
+        Paint all bonds between two structural voxels in the Mesovoxel
+        """
+        for structural_voxel in Mesovoxel.structural_voxels:
+            for vertex_direction in structural_voxel.vertex_coordinates:
+                # Get the vertex, its partner vertex, and the partner voxel
+                vertex = structural_voxel.get_vertex(vertex_direction)
+                partner_voxel, partner_vertex = structural_voxel.get_partner(vertex_direction)
+
+                if partner_voxel in Mesovoxel.structural_voxels:
+                    # Always paint complementary bond with opposite (negative) color to the original
+                    self.n_colors += 1
+                    self.paint_bond(vertex, self.n_colors)
+                    self.paint_bond(partner_vertex, -1*self.n_colors)
+                    print(f'Painted bond between voxels {structural_voxel.index} and {partner_voxel.index} with color {self.n_colors}\n')
+
+        
     
-    def paintBond(self, vertex, color: int, bond_type: str=None):
+    def paint_bond(self, vertex, color: int, bond_type: str=None):
         """
         Paint the bond on a given vertex with a given color.
         Optionally, denote whether it is a structural or mapped bond.
@@ -28,7 +92,7 @@ class BondPainter:
         vertex.bond.color = color
         vertex.bond.bond_type = bond_type
 
-    def paintAllBonds(self):
+    def paint_all_bonds(self):
         """
         Paint bonds between voxels in the lattice.
         """
@@ -39,8 +103,8 @@ class BondPainter:
 
                 # Always paint complementary bond with opposite (negative) color to the original
                 n_colors += 1
-                self.paintBond(vertex1, n_colors)
-                self.paintBond(vertex2, -1*n_colors)
+                self.paint_bond(vertex1, n_colors)
+                self.paint_bond(vertex2, -1*n_colors)
 
                 self.RecomputeSymmetries(voxel1)
 
@@ -50,37 +114,9 @@ class BondPainter:
         Loop to check if painting the new color on the voxel violates any
         previous established symmetries.
         """
-        ValidSymmetries = self.getValidSymmetries(self.symmetry_manager.SymmetryDict, voxel1)
-        for partner_voxel, symmetry_list in ValidSymmetries.items():
+        for partner_voxel, symmetry_list in SymmetryDf.symdict(voxel1.index):
             for symmetry_label in symmetry_list:
                 #TODO: Change Symmetry obj to store all symmetries in a dict
                 pass
 
-    def getValidSymmetries(SymmetryDict: dict, voxel: Voxel):
-        """
-        Create a ValidSymmetries dict where the key is a partner_voxel with some valid 
-        symmetry with input voxel. The value is a list of symmetry labels that are valid
-        (ex: "90° rotation in X axis",.)
-        contains a specific voxel and the Symmetry.hasAnySymmetry() is True.
-        @param:
-        - symmetry_dict: dict, where keys are frozensets of integers (voxel.index) 
-                         and values are Symmetry objects.
-        - voxel: int, index of specific voxel to check for in the keys.
-
-        @return: dict, of {Voxel: [sym1, sym2, ...]} 
-        """
-        ValidSymmetries = {} # Collect all valid symmetries for voxels containing any sym
-        for voxel_set, symmetry_obj in SymmetryDict.items():
-            if voxel in voxel_set and symmetry_obj.hasAnySymmetry():
-                # Self symmetry
-                if len(voxel_set) == 1: 
-                    partner_voxel = voxel 
-                else: # Get the partner voxel
-                    single_voxel_set = (voxel_set - frozenset([voxel]))
-                    partner_voxel = single_voxel_set.pop()
-
-                # Get all True symmetries with the partner voxel
-                current_symlist = symmetry_obj.getValidSymmetries()
-                ValidSymmetries[partner_voxel] = current_symlist
-
-        return ValidSymmetries
+    

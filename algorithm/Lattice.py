@@ -37,6 +37,7 @@ class Lattice:
             self.MinDesign = input_lattice
 
         self.voxel_list, self.coord_list = self.init_voxels(self.MinDesign)
+        self.init_vertices()
 
     @staticmethod
     def is_unit_cell(lattice: np.array) -> bool:
@@ -65,6 +66,7 @@ class Lattice:
         
         return is_unit_cell
     
+
     def init_voxels(self, MinDesign: np.array) -> tuple:
         """
         Create Voxel objects for each voxel in MinDesign, filling the following lists:
@@ -83,6 +85,7 @@ class Lattice:
         coord_list = []
 
         index = 0
+        # 1. Initialize all voxels with empty vertices
         for np_index, value in np.ndenumerate(MinDesign):
             # Map voxel's numpy index into euclidean space
             coordinates = CoordinateManager.npindex_to_euclidean(np_index, MinDesign.shape)
@@ -96,6 +99,20 @@ class Lattice:
             index += 1
 
         return voxel_list, coord_list
+    
+    def init_vertices(self):
+        """
+        Fill all vertex partners on all voxels in voxel_list in place.
+        """
+        for voxel in self.voxel_list:
+            for direction in voxel.vertex_coordinates:
+                # Get the partner voxel + vertex the voxel is connected to
+                partner_voxel, partner_vertex = self.get_partner(voxel, direction)
+                
+                # Set the vertex's partner and bond
+                vertex = voxel.get_vertex(direction)
+                vertex.vertex_partner = partner_vertex
+                vertex.bond.set_bond_partner(partner_vertex.bond)
     
 
     def get_voxel(self, voxel_id) -> Voxel:
@@ -115,7 +132,7 @@ class Lattice:
             index = self.coord_list.index(voxel_id)
             voxel = self.voxel_list[index]
             return voxel
-        elif isinstance(voxel_id, np.array):
+        elif isinstance(voxel_id, np.ndarray):
             index = self.coord_list.index(tuple(voxel_id))
             voxel = self.voxel_list[index]
             return voxel
@@ -154,8 +171,9 @@ class Lattice:
         # Get the partner_voxel + vertex the voxel is connected to
         partner_voxel = self.get_voxel(partner_coords)
 
-        partner_vertex_direction = -np.array(direction) # Reverse direction to find partner vertex (wrt. partner_voxel)
-        partner_vertex = partner_voxel.vertices[tuple(partner_vertex_direction)]
+        partner_vertex_direction = tuple(-np.array(direction)) # Reverse direction to find partner vertex (wrt. partner_voxel)
+        partner_vertex_index = partner_voxel.vertex_coordinates.index(partner_vertex_direction)
+        partner_vertex = partner_voxel.vertices[partner_vertex_index]
 
         # Return the bond partner
         return partner_voxel, partner_vertex
