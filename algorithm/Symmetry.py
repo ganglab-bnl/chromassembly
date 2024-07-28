@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import logging
 
 from .Voxel2 import Voxel
 from .Lattice import Lattice
@@ -18,11 +19,12 @@ class SymmetryDf:
     @methods
         - symlist: Get the list of symmetries for a specific voxel pair
         - symdict: Get a dictionary of all possible symlists containing the Voxel object
+        - partner_symdict: Get a symdict where the keys contain only the partner_voxel.id
+        - print_all_symdicts: Print all possible symdicts for all voxels in the Lattice.MinDesign
     
     @internal
-        - init_symmetry_df: Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
-        - compute_all_symmetries: Compute all possible symmetries between all 2-combinations of voxels
-        - make_voxel_pair_label: Convert frozenset to string for use in representing voxel pairs in Symmetry
+        - _init_symmetry_df: Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
+        - _compute_all_symmetries: Compute all possible symmetries between all 2-combinations of voxels
     """
     def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager):
         """
@@ -33,32 +35,107 @@ class SymmetryDf:
         self.SurroundingsManager = SurroundingsManager
 
         # Create dictionary of all possible symmetry operations
-        self.symmetry_operations = RotationManager.init_all_rotations()
+        # Ex: {'90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), ...}
+        self.symmetry_operations = RotationManager.get_all_rotations()
         
-        # Initialize symmetry_df
-        self.symmetry_df = self.init_symmetry_df()
+        # The SymmetryDf data structure containing all voxel pairs and their symmetries
+        # Ex: (0, 1): {'90° X-axis': True, '180° Y-axis': False, ...}
+        self.symmetry_df = self._init_symmetry_df()
+        self._compute_all_symmetries() # Fill all symmetries in place
+    
 
-        # Compute all symmetries, filling symmetry_df in place
-        self.compute_all_symmetries()
-
-
-    def init_symmetry_df(self) -> pd.DataFrame:
+    def symlist(self, voxel1_id: int, voxel2_id: int) -> list[str]:
         """
-        Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
-        to be filled later.
+        Get the list of valid symmetries for a specific voxel pair
+        @param:
+            - voxel1_id: Voxel.id for the first voxel
+            - voxel2_id: Voxel.id for the second voxel (can be the same as voxel1)
         @return:
-            - symmetry_df: Pandas DataFrame object
+            - symlist: List of symmetry labels that are valid for the voxel pair
+                -> ex: ['90° X-axis', '180° Y-axis']
+        """
+        voxel_pair_label = VoxelPair.make_label(frozenset([voxel1_id, voxel2_id]))
+
+        # Get those symmetries which are True for the voxel pair
+        all_symmetries = self.symmetry_df.loc[voxel_pair_label]
+        valid_symmetries = all_symmetries[all_symmetries == True].index
+        symlist = list(valid_symmetries)
+
+        return symlist
+    
+    def symdict(self, id: int) -> dict[str, list]:
+        """
+        Get a dictionary of all possible symlists containing the Voxel object
+
+        @param:
+            - id: Voxel.id (int) to find all possible symlists for
+        @return:
+            - symdict: Dictionary of all voxel pairs with the given voxel 
+                       which have symlists of non-zero length
+                -> ex: symdict(voxel1)
+                    {"(0, 1)": ['90° X-axis', '180° Y-axis'],
+                     "(1, 4)": ['90° Z-axis', '270° X-axis']}
+        """
+        symdict = {}
+        for voxel2 in self.Lattice.voxel_list:
+            current_symlist = self.symlist(id, voxel2.id)
+            # Only add symlists for voxel pairs with valid symmetries
+            if len(current_symlist) > 0:
+                voxel_pair_label = VoxelPair.make_label(frozenset([id, voxel2.id]))
+                symdict[voxel_pair_label] = current_symlist
+        return symdict
+    
+    def partner_symdict(self, voxel_id: int) -> dict[int, list]:
+        """
+        Get a symdict where the keys contain only the partner_voxel.id
+
+        @param:
+            - voxel_id: Voxel.id (int) to find all possible symlists for
+            - symdict: Dictionary of all voxel pairs with the given voxel
+        @return:
+            - partner_symdict: Dictionary of all voxel pairs with the given voxel 
+                       and its partner voxel which have symlists of non-zero length
+                -> ex: partner_symdict(voxel1, symdict)
+                    {0: ['90° X-axis', '180° Y-axis'],
+                     4: ['90° Z-axis', '270° X-axis']}
+        """
+        symdict = self.symdict(voxel_id)
+        partner_symdict = {}
+
+        for voxel_pair_label, symlist in symdict.items():
+            partner_id = VoxelPair.get_partner(voxel_pair_label, voxel_id)
+            partner_symdict[partner_id] = symlist
+            
+        return partner_symdict
+    
+    def print_all_symdicts(self) -> None:
+        """
+        Print all possible symdicts for all voxels in the Lattice.MinDesign.
+        """
+        for voxel in self.Lattice.voxel_list:
+            print(f'Voxel {voxel.id}\n---\nCoordinates: {voxel.coordinates} Material: {voxel.material}')
+            print('Symmetries:')
+            for voxel_pair, symlist in self.symdict(voxel.id).items():
+                print(f'{voxel_pair}: {symlist}')
+            print('\n')
+    
+    def _init_symmetry_df(self) -> pd.DataFrame:
+        """
+        Initialize an empty symmetry_df with all possible voxel pairs as the index, with 
+        empty columns corresponding symmetry operations to be filled later.
+        @return:
+            - symmetry_df: pd.DataFrame object
         """
         # Create a list of all possible voxel pairs
         voxel_pairs_set = set()
         for voxel1 in self.Lattice.voxel_list:
             for voxel2 in self.Lattice.voxel_list:
-                voxel_pairs_set.add(frozenset([voxel1.voxel_id, voxel2.voxel_id]))
+                voxel_pairs_set.add(frozenset([voxel1.id, voxel2.id]))
         
         # Convert the set of frozensets to a list of formatted strings
         # E.g., "frozenset({0, 1})" -> "(0, 1)"
         sorted_voxel_pairs_set = sorted(voxel_pairs_set) # Sort lexicographically
-        voxel_pairs = [self.make_voxel_pair_label(pair) for pair in sorted_voxel_pairs_set]
+        voxel_pairs = [VoxelPair.make_label(pair) for pair in sorted_voxel_pairs_set]
 
         # Create a dataframe containing True or False for each symmetry operation as the column names
         symmetry_df = pd.DataFrame(index=voxel_pairs, columns=self.symmetry_operations.keys())
@@ -66,8 +143,7 @@ class SymmetryDf:
 
         return symmetry_df
     
-    
-    def compute_all_symmetries(self):
+    def _compute_all_symmetries(self):
         """
         Compute all possible symmetries between all 2-combinations of voxels
         in the Lattice.MinDesign. Fills self.symmetry_df in place with the results.
@@ -82,9 +158,8 @@ class SymmetryDf:
                 transformed_voxel1_surroundings = sym_function(voxel1_surroundings)
 
                 for voxel2 in self.Lattice.voxel_list:
-                    # Make voxel pair to index into SymmetryDict
-                    voxel_pair = frozenset([voxel1.voxel_id, voxel2.voxel_id])
-                    voxel_pair_label = self.make_voxel_pair_label(voxel_pair) # index with str
+                    # Make voxel pair label (str) to index into SymmetryDf
+                    voxel_pair_label = VoxelPair.make_label(frozenset([voxel1.id, voxel2.id])) 
 
                     # print(f'Checking symmetry for {voxel_pair_label} with {sym_label}...') # debug
     
@@ -100,81 +175,6 @@ class SymmetryDf:
 
                     self.symmetry_df.loc[voxel_pair_label, sym_label] = has_symmetry # Store the result in symmetry_df
 
-
-    def symlist(self, voxel1_id: int, voxel2_id: int) -> list[str]:
-        """
-        Get the list of symmetries for a specific voxel pair
-        @param:
-            - voxel1_id: Voxel.voxel_id for the first voxel
-            - voxel2_id: Voxel.voxel_id for the second voxel (can be the same as voxel1)
-        @return:
-            - symlist: List of symmetry labels that are valid for the voxel pair
-                -> ex: ['90° X-axis', '180° Y-axis']
-        """
-        voxel_pair = frozenset([voxel1_id, voxel2_id])
-        voxel_pair_label = self.make_voxel_pair_label(voxel_pair)
-        all_symmetries = self.symmetry_df.loc[voxel_pair_label]
-        # all_symmetries = list(all_symmetries)
-        valid_symmetries = all_symmetries[all_symmetries == True].index
-        symlist = list(valid_symmetries)
-        return symlist
-    
-    def symdict(self, voxel_id: int) -> dict[str, list]:
-        """
-        Get a dictionary of all possible symlists containing the Voxel object
-
-        @param:
-            - voxel_id: Voxel.voxel_id (int) to find all possible symlists for
-        @return:
-            - symdict: Dictionary of all voxel pairs with the given voxel 
-                       which have symlists of non-zero length
-                -> ex: symdict(voxel1)
-                    {"(0, 1)": ['90° X-axis', '180° Y-axis'],
-                     "(1, 4)": ['90° Z-axis', '270° X-axis']}
-        """
-        symdict = {}
-        for voxel2 in self.Lattice.voxel_list:
-            current_symlist = self.symlist(voxel_id, voxel2.voxel_id)
-            # Only add symlists for voxel pairs with valid symmetries
-            if len(current_symlist) > 0:
-                voxel_pair = frozenset([voxel_id, voxel2.voxel_id])
-                voxel_pair_label = self.make_voxel_pair_label(voxel_pair)
-                symdict[voxel_pair_label] = current_symlist
-        return symdict
-    
-    def partner_symdict(self, voxel_id: int) -> dict[int, list]:
-        """
-        Get a symdict where the keys contain only the partner_voxel.voxel_id
-
-        @param:
-            - voxel_id: Voxel.voxel_id (int) to find all possible symlists for
-            - symdict: Dictionary of all voxel pairs with the given voxel
-        @return:
-            - partner_symdict: Dictionary of all voxel pairs with the given voxel 
-                       and its partner voxel which have symlists of non-zero length
-                -> ex: partner_symdict(voxel1, symdict)
-                    {0: ['90° X-axis', '180° Y-axis'],
-                     4: ['90° Z-axis', '270° X-axis']}
-        """
-        symdict = self.symdict(voxel_id)
-        partner_symdict = {}
-        for voxel_pair_label, symlist in symdict.items():
-            voxel_pair_list = SymmetryDf.parse_voxel_pair_label(voxel_pair_label)
-
-            if len(voxel_pair_list) == 1:
-                partner_id = voxel_id
-            
-            else:
-                voxel1_id, voxel2_id = voxel_pair_list
-                # Which one is the partner?
-                if voxel_id == voxel1_id:
-                    partner_id = voxel2_id
-                elif voxel_id == voxel2_id:
-                    partner_id = voxel1_id
-                
-            partner_symdict[partner_id] = symlist
-        
-        return partner_symdict
     
 
     @staticmethod
@@ -186,7 +186,7 @@ class SymmetryDf:
         @param:
             - voxel_pair: a frozenset of two voxel.indices
         @return:
-            - string: str, "(voxel1.voxel_id, voxel2.voxel_id)"
+            - string: str, "(voxel1.id, voxel2.id)"
         """
         # Convert to sorted list for consistency
         sorted_vpair_list = sorted(voxel_pair) 
@@ -201,25 +201,71 @@ class SymmetryDf:
         E.g., "(0, 1)" -> frozenset({0, 1})
 
         @param:
-            - voxel_pair_label: str, "(voxel1.voxel_id, voxel2.voxel_id)"
+            - voxel_pair_label: str, "(voxel1.id, voxel2.id)"
         @return:
-            - voxel1, voxel2: list of ints, [voxel1.voxel_id, voxel2.voxel_id] or [voxel1.voxel_id]
+            - voxel1, voxel2: list of ints, [voxel1.id, voxel2.id] or [voxel1.id]
         """
         # Remove parentheses and split by ", " to get a list of strings
         voxel_pair_list = voxel_pair_label[1:-1].split(", ")
         voxel_pair_list = map(int, voxel_pair_list)
         return list(voxel_pair_list)
+
+
+class VoxelPair:
+    """
+    Helper class for managing the voxel pair labels for SymmetryDf.
+    All methods use voxel.id to represent the Voxel objects.
+    """
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def make_label(voxel_pair: frozenset) -> str:
+        """
+        Convert frozenset to string for use in representing voxel pairs in SymmetryDf
+        E.g., "frozenset({0, 1})" -> "(0, 1)"
+
+        @param:
+            - voxel_pair: a frozenset of two voxel.id values
+        @return:
+            - string: str, "(voxel1.id, voxel2.id)"
+        """
+        # Convert to sorted list for consistency
+        sorted_pair_list = sorted(voxel_pair) 
+        # Convert each integer in list to str, join with ", ", then wrap in parentheses
+        label = "(" + ", ".join(map(str, sorted_pair_list)) + ")" 
+        return label
+
+    @staticmethod
+    def get_voxels(label: str) -> list:
+        """
+        Return the two(or one) Voxel.id values in the VoxelPair object
+        @param:
+            - label: str, "(voxel1.id, voxel2.id)" or "(voxel1.id)"
+        @return:
+            - voxel1, voxel2: list of ints, [voxel1.id, voxel2.id] or [voxel1.id]
+        """
+        # Remove parentheses and split by ", " to get a list of strings
+        voxel_strings = label[1:-1].split(", ")
+        voxels = map(int, voxel_strings)
+        return list(voxels)
     
-    def print_all_symdicts(self) -> None:
-        """
-        Print all possible symdicts for all voxels in the Lattice.MinDesign.
-        """
-        for voxel in self.Lattice.voxel_list:
-            print(f'Voxel {voxel.voxel_id}\n---\nCoordinates: {voxel.coordinates} Material: {voxel.material}')
-            print('Symmetries:')
-            for voxel_pair, symlist in self.symdict(voxel.voxel_id).items():
-                print(f'{voxel_pair}: {symlist}')
-            print('\n')
+    @staticmethod
+    def get_partner(label: str, voxel_id: int) -> int:
+        """Get the partner Voxel.id from the label"""
+
+        voxel_pair = VoxelPair.get_voxels(label)
+
+        if voxel_id not in voxel_pair:
+            logging.error(f"Voxel {voxel_id} not in VoxelPair {label}")
+            return None
+
+        if len(voxel_pair) == 1:
+            return voxel_id # Represents self-symmetry
+        
+        # Two voxels in the the pair
+        voxel1_id, voxel2_id = voxel_pair
+        return voxel2_id if voxel_id == voxel1_id else voxel1_id
     
 
 class RotationManager:
@@ -281,7 +327,7 @@ class RotationManager:
         cls.double_rotations = sorted_double_rotations
     
     @staticmethod
-    def init_all_rotations() -> dict[str, callable]:
+    def get_all_rotations() -> dict[str, callable]:
         """
         Initialize all possible rotations for symmetry operations
         @return:

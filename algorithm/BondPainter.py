@@ -29,17 +29,17 @@ class Mesovoxel:
                 structural_voxels.append(voxel)
                 continue
 
-            partner_symdict = self.SymmetryDf.partner_symdict(voxel.voxel_id)
+            partner_symdict = self.SymmetryDf.partner_symdict(voxel.id)
 
-            for partner_voxel_voxel_id, symlist in partner_symdict.items():
+            for partner_voxel_id, symlist in partner_symdict.items():
 
                 # If voxel has symmetry with a structural voxel already in the list
                 # we add it to the list of complementary voxels
                 has_symmetry_with_structural_voxel = False
                 for structural_voxel in structural_voxels:
-                    if partner_voxel_voxel_id == structural_voxel.voxel_id:
-                        print(f'Adding voxel {voxel.voxel_id} to complementary_voxels\n---')
-                        print(f'Has the following symmetries with voxel {structural_voxel.voxel_id}:\n{symlist}\n')
+                    if partner_voxel_id == structural_voxel.id:
+                        print(f'Adding voxel {voxel.id} to complementary_voxels\n---')
+                        print(f'Has the following symmetries with voxel {structural_voxel.id}:\n{symlist}\n')
                         complementary_voxels.append(voxel)
                         has_symmetry_with_structural_voxel = True
                         break
@@ -85,7 +85,7 @@ class BondPainter:
                     self.n_colors += 1
                     self.paint_bond(vertex, self.n_colors)
                     self.paint_bond(partner_vertex, -1*self.n_colors)
-                    print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.voxel_id} ({vertex.direction}) and voxel {partner_voxel.voxel_id} ({partner_vertex.direction})\n')
+                    print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.id} ({vertex.direction}) and voxel {partner_voxel.id} ({partner_vertex.direction})\n')
 
     
     def paint_bond(self, bond: Bond, color: int, bond_type: str=None):
@@ -118,7 +118,7 @@ class BondPainter:
         Loop to check if painting the new color on the voxel violates any
         previous established symmetries.
         """
-        for partner_voxel, symmetry_list in SymmetryDf.symdict(voxel1.voxel_id):
+        for partner_voxel, symmetry_list in SymmetryDf.symdict(voxel1.id):
             for symmetry_label in symmetry_list:
                 #TODO: Change Symmetry obj to store all symmetries in a dict
                 pass

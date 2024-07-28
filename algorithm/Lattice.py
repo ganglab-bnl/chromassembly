@@ -48,26 +48,26 @@ class Lattice:
         self._fill_partners()
 
     # Public methods
-    def get_voxel(self, voxel_id) -> Voxel:
+    def get_voxel(self, id) -> Voxel:
         """
         Get a Voxel object by its index or coordinates depending on the supplied parameter.
         @param:
-            - voxel_id: int (Voxel.index) or tuple/np.ndarray (Voxel.coordinates)
+            - id: int (Voxel.index) or tuple/np.ndarray (Voxel.coordinates)
         @return:
             - voxel: The desired Voxel object
         """
-        if isinstance(voxel_id, int):
-            # Case 1: voxel_id is an index (int)
-            voxel_index = voxel_id
-        elif isinstance(voxel_id, tuple):
-            # Case 2: voxel_id is euclidean coordinates (tuple)
-            voxel_index = self.coord_list.index(voxel_id)
-        elif isinstance(voxel_id, np.ndarray):
-            # Case 3: voxel_id is np.ndarray coordinates
-            voxel_index = self.coord_list.index(tuple(voxel_id))
+        if isinstance(id, int):
+            # Case 1: id is an index (int)
+            voxel_index = id
+        elif isinstance(id, tuple):
+            # Case 2: id is euclidean coordinates (tuple)
+            voxel_index = self.coord_list.index(id)
+        elif isinstance(id, np.ndarray):
+            # Case 3: id is np.ndarray coordinates
+            voxel_index = self.coord_list.index(tuple(id))
         else:
             # Case 4: Invalid type
-            raise ValueError(f"Invalid voxel_id type: {type(voxel_id)}")
+            raise ValueError(f"Invalid id type: {type(id)}")
 
         voxel = self.voxel_list[voxel_index] # Omiting error handling because it's self explanatory
         return voxel
@@ -116,7 +116,7 @@ class Lattice:
         voxel_list = []
         coord_list = []
 
-        voxel_id = 0
+        id = 0
         # 1. Initialize all voxels with empty vertices
         for np_index, material in np.ndenumerate(MinDesign):
             # Map voxel's numpy index into euclidean space
@@ -124,7 +124,7 @@ class Lattice:
             
             # Create new Voxel object with given info
             current_voxel = Voxel(
-                voxel_id=voxel_id, 
+                id=id, 
                 material=material, 
                 coordinates=coordinates, 
                 np_index=np_index
@@ -133,11 +133,11 @@ class Lattice:
             # Append current voxel and its coordinates to the lists
             voxel_list.append(current_voxel)
             coord_list.append(coordinates)
-            voxel_id += 1
+            id += 1
 
         # Print all voxel indices and coordinates
-        voxel_ids = ', '.join(str(voxel.voxel_id) for voxel in voxel_list)
-        print(f'Initialized Voxels: {voxel_ids}')
+        ids = ', '.join(str(voxel.id) for voxel in voxel_list)
+        print(f'Initialized Voxels: {ids}')
         coords = ', '.join(str(coord) for coord in coord_list)
         print(f'With coordinates: {coords}')
 
@@ -158,7 +158,7 @@ class Lattice:
                 voxel_bond.set_bond_partner(partner_bond)
                 partner_bond.set_bond_partner(voxel_bond)
 
-                # print(f"Filled partner: Voxel {voxel.voxel_id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.voxel_id} [{partner_voxel.material}]")
+                # print(f"Filled partner: Voxel {voxel.id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.id} [{partner_voxel.material}]")
     
     def _get_partner(self, voxel, direction) -> tuple[Voxel, Bond]:
         """
@@ -166,7 +166,7 @@ class Lattice:
         Note that directions are all stored as tuples but need to be converted
         to numpy arrays for element-wise addition.
         @param:
-            - voxel: Voxel object, or the voxel_id / coordinates of the desired Voxel
+            - voxel: Voxel object, or the id / coordinates of the desired Voxel
             - direction: Tuple/np.ndarray of 3 values, the euclidean (x,y,z) direction 
                          to find bond partner in
         @return:
@@ -204,20 +204,6 @@ class Lattice:
         # Return the bond partner
         return partner_voxel, partner_bond
 
-    # def _init_vertices(self):
-    #     """
-    #     Fill all vertex partners on all voxels in voxel_list in place.
-    #     """
-    #     for voxel in self.voxel_list:
-    #         for coords in voxel.vertex_coordinates:
-    #             # Get the partner voxel + vertex the voxel is connected to
-    #             partner_voxel, partner_vertex = self.get_partner(voxel, coords)
-                
-    #             # Set the vertex's partner and bond
-    #             vertex = voxel.get_vertex(coords)
-    #             vertex.vertex_partner = partner_vertex
-    #             vertex.bond.set_bond_partner(partner_vertex.bond)
-    
 
 class CoordinateManager:
     """

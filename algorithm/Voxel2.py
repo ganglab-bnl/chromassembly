@@ -13,17 +13,17 @@ class Voxel:
         - get_partner(direction): Returns partner Bond + Voxel objects 
                                   in the supplied direction
     """
-    def __init__(self, voxel_id: int, material: int, coordinates: tuple[float, float, float],
+    def __init__(self, id: int, material: int, coordinates: tuple[float, float, float],
                  np_index: tuple[int, int, int]):
         """
         Initialize a Voxel object with a unique ID, material, and coordinates.
         @param:
-            - voxel_id: the unique identifier for the Voxel
+            - id: the unique identifier for the Voxel
             - material: the material cargo of the Voxel
             - coordinates: the Voxel's coordinates in the Lattice.MinDesign
             - np_index: The 'material' value's index into the MinDesign np.array
         """
-        self.voxel_id = voxel_id
+        self.id = id
         self.material = material
         self.coordinates = coordinates
         self.np_index = np_index
@@ -65,7 +65,7 @@ class Voxel:
         bond_partner = bond.bond_partner
 
         if bond_partner is None:
-            logging.error(f"No bond partner found for Voxel {self.voxel_id} in direction {direction}")
+            logging.error(f"No bond partner found for Voxel {self.id} in direction {direction}")
             return None, None
 
         voxel_partner = bond_partner.voxel
