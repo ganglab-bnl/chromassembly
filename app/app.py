@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QCheckBox, QMessageBox, QTabWidget)
 import numpy as np
 
-from .design.DesignWindow import DesignWindow
-from .visualize.VisualizeWindow import VisualizeWindow
+from .design.Designer import Designer
+from .visualize.Visualizer import Visualizer
 from .widgets.MenuBar import MenuBar
 from .widgets.StatusBar import StatusBar
 from .widgets.ToolBar import ToolBar
@@ -27,11 +27,11 @@ class LatticeDesignerApp(QMainWindow):
         self.layout.addWidget(self.tabs, stretch=1)  # Ensure it expands to fill space
 
         # Initialize design and visualize tabs
-        self.DesignWindow = DesignWindow()
-        self.tabs.addTab(self.DesignWindow, "Design")
+        self.Designer = Designer()
+        self.tabs.addTab(self.Designer, "Design")
 
-        self.VisualizeWindow = VisualizeWindow()
-        self.tabs.addTab(self.VisualizeWindow, "Visualize")
+        self.Visualizer = Visualizer()
+        self.tabs.addTab(self.Visualizer, "Visualize")
 
         # Toolbars
         self.create_toolbars()
@@ -42,7 +42,7 @@ class LatticeDesignerApp(QMainWindow):
         
         # Connect the currentChanged signal
         self.tabs.currentChanged.connect(self.update_status_bar)
-        self.DesignWindow.latticeSaved.connect(self.VisualizeWindow.create_lattice)
+        self.Designer.latticeSaved.connect(self.Visualizer.create_lattice)
     
     def create_toolbars(self):
         # Top Toolbar

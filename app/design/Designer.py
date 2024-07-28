@@ -3,9 +3,10 @@ from PyQt6.QtCore import pyqtSignal
 import numpy as np
 from .SetDimensions import SetDimensions
 from .FillDimensions import FillDimensions
+from algorithm.Lattice import Lattice
 
-class DesignWindow(QWidget):
-    latticeSaved = pyqtSignal(np.ndarray)
+class Designer(QWidget):
+    latticeSaved = pyqtSignal(Lattice)
 
     def __init__(self):
         super().__init__()
@@ -64,8 +65,11 @@ class DesignWindow(QWidget):
     def updateDimensions(self, rows, columns, layers):
         self.fillDimensionsWidget.updateGrid(rows, columns, layers)
 
-    def setLattice(self, lattice):
-        self.lattice = lattice 
+    def setLattice(self, lattice: Lattice):
+        """
+        Save lattice to class attributes and emit the latticeSaved signal
+        """
+        self.lattice = lattice
         self.latticeSaved.emit(self.lattice)
         print(f'Saved lattice:\n{self.lattice}\n')
 
@@ -95,8 +99,8 @@ class RunDesigner:
         self.mainLayout = QVBoxLayout(self.centralWidget)
         self.mainWindow.setCentralWidget(self.centralWidget)
 
-        # Initialize VisualizeWindow and add it to the layout
-        self.window = DesignWindow()
+        # Initialize Designer and add it to the layout
+        self.window = Designer()
         self.mainLayout.addWidget(self.window)
         self.window.latticeSaved.connect(self.lattice_saved)
         self.lattice = None  # Placeholder for the lattice

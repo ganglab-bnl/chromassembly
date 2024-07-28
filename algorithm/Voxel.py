@@ -1,7 +1,7 @@
 import numpy as np
 
 class Vertex:
-    def __init__(self, voxel, coordinates, bond=None, vertex_partner=None):
+    def __init__(self, voxel, coordinates, direction, bond=None, vertex_partner=None):
         """
         A Vertex object associated with a Voxel parent and connected to a Bond.
         @param:
@@ -16,10 +16,11 @@ class Vertex:
         """
         self.voxel = voxel
         self.bond = bond
+
         # For octahedral voxels, possible coordinates are
         # (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)
-        # corresponding to +x, -x, +y, -y, +z, -z
-        self.coordinates = coordinates # should i rename to 'direction'? lol
+        self.coordinates = coordinates 
+        self.direction = direction # corresponding to +x, -x, +y, -y, +z, -z
         self.vertex_partner = vertex_partner
 
 class Voxel:
@@ -45,6 +46,11 @@ class Voxel:
         # self.vertex_directions = ['+x', '-x', '+y', '-y', '+z', '-z'] # For octahedral voxels
         
         # Coordinates of voxel's vertices with voxel centered at (0, 0, 0)
+        self.vertex_directions = [
+            "+x", "-x", 
+            "+y", "-y", 
+            "+z", "-z"
+        ]
         self.vertex_coordinates = [
             (1, 0, 0), (-1, 0, 0),   # +-x
             (0, 1, 0), (0, -1, 0),   # +-y
@@ -57,7 +63,8 @@ class Voxel:
         vertices = []
         for coords in self.vertex_coordinates:
             # Create a new vertex and attach an empty bond to it
-            new_vertex = Vertex(voxel=self, coordinates=coords)
+            direction = self.vertex_directions[self.vertex_coordinates.index(coords)]
+            new_vertex = Vertex(voxel=self, coordinates=coords, direction=direction)
             new_bond = Bond(vertex=new_vertex)
             new_vertex.bond = new_bond
             vertices.append(new_vertex)
@@ -68,15 +75,19 @@ class Voxel:
         """
         Get the vertex in a given direction.
         @param:
-            - direction: tuple(int, int, int) or np.array, the euclidean direction to find 
+            - direction: tuple(int, int, int), np.ndarray, or str, the euclidean direction to find 
                          the vertex in, where direction is wrt. the voxel at (0,0,0)
         @return:
             - vertex: Vertex object
         """
+        # If direction supplied like "+x", "-y", etc.
+        if isinstance(direction, str):
+            vertex_index = self.vertex_directions.index(direction)
+            return self.vertices[vertex_index]
 
+        # If direction supplied as a tuple or np.array
         if isinstance(direction, np.ndarray):
             direction = tuple(direction)
-        
         vertex_index = self.vertex_coordinates.index(direction)
         return self.vertices[vertex_index]
     

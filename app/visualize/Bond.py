@@ -1,5 +1,5 @@
 import pyqtgraph.opengl as gl
-from .Voxel import Voxel
+from algorithm.Voxel import Voxel
 import numpy as np
 from ..config import AppConfig
 
@@ -100,6 +100,19 @@ class Bond:
 
         return shaft, arrowhead
 
+    # @classmethod
+    # def create_voxel_bonds(cls, voxel: Voxel):
+    #     """
+    #     Creates all 6 bonds (arrows) for each direction in directions 
+    #     for a given voxel.
+    #     @param:
+    #         - voxel: Voxel object to create bonds for
+    #     """
+    #     bond_shafts = []
+    #     bond_arrows = []
+    #     # for vertex in voxel.vertices:
+
+    #     return bond_shafts, bond_arrows
     
     @classmethod
     def create_voxel_bonds(cls, x, y, z):
@@ -107,7 +120,7 @@ class Bond:
         Creates all 6 bonds (arrows) for each direction in directions 
         for a given voxel.
         @param:
-            - x, y, z: The coordinates of the voxel
+            - voxel: Voxel object to create bonds for
         """
         bond_shafts = []
         bond_arrows = []

@@ -1,17 +1,18 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QScrollArea
 import numpy as np
+from algorithm.Lattice import Lattice
 class FillDimensions(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parentWidget = parent
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self._layout = QVBoxLayout()
+        self.setLayout(self._layout)
 
         self.initUI()
 
     def initUI(self):
         self.label = QLabel("Fill Lattice Dimensions")
-        self.layout.addWidget(self.label)
+        self._layout.addWidget(self.label)
 
         # Add a scroll area to a container holding the grid
         self.scrollArea = QScrollArea()
@@ -22,7 +23,7 @@ class FillDimensions(QWidget):
         self.container.setLayout(self.gridLayout)
 
         self.scrollArea.setWidget(self.container)
-        self.layout.addWidget(self.scrollArea)
+        self._layout.addWidget(self.scrollArea)
 
 
     def updateGrid(self, rows, columns, layers):
@@ -52,7 +53,6 @@ class FillDimensions(QWidget):
                     self.gridLayout.addWidget(lineEdit, currentRow, column)
                 currentRow += 1  # Move to the next row after filling one row of line edits
        
-        
         self.gridLayout.setRowStretch(currentRow, 1)
 
     def clearGrid(self):
@@ -70,7 +70,8 @@ class FillDimensions(QWidget):
                 widget.setText('0')
     
     def saveLattice(self):
-        """Save the lattice data to a numpy array to visualize in
+        """
+        Save the lattice data to a numpy array -> Lattice object to visualize in
         the VisualizeWindow."""
         lattice = []
         for i in range(self.gridLayout.count()):
@@ -78,6 +79,7 @@ class FillDimensions(QWidget):
             if isinstance(widget, QLineEdit):
                 lattice.append(int(widget.text()))
         lattice = np.array(lattice).reshape(self.n_lay, self.n_row, self.n_col)
+        lattice = Lattice(lattice)
         
         # Check if the parent widget has a 'lattice' attribute and set it
         self.parentWidget.setLattice(lattice)

@@ -67,22 +67,25 @@ class BondPainter:
     
     def paint_mesovoxel(self, Mesovoxel: Mesovoxel):
         """
-        Paint all bonds between two structural voxels in the Mesovoxel
+        Paint all bonds between structural voxels in the Mesovoxel
         """
         for structural_voxel in Mesovoxel.structural_voxels:
             for vertex_direction in structural_voxel.vertex_coordinates:
-                # Get the vertex, its partner vertex, and the partner voxel
+
+                # If vertex already painted, skip
                 vertex = structural_voxel.get_vertex(vertex_direction)
                 partner_voxel, partner_vertex = structural_voxel.get_partner(vertex_direction)
+
+                if vertex.bond.color is not None or partner_vertex.bond.color is not None:
+                    continue
 
                 if partner_voxel in Mesovoxel.structural_voxels:
                     # Always paint complementary bond with opposite (negative) color to the original
                     self.n_colors += 1
                     self.paint_bond(vertex, self.n_colors)
                     self.paint_bond(partner_vertex, -1*self.n_colors)
-                    print(f'Painted bond between voxels {structural_voxel.index} and {partner_voxel.index} with color {self.n_colors}\n')
+                    print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.index} ({vertex.direction}) and voxel {partner_voxel.index} ({partner_vertex.direction})\n')
 
-        
     
     def paint_bond(self, vertex, color: int, bond_type: str=None):
         """
@@ -102,9 +105,9 @@ class BondPainter:
                 voxel2 = vertex2.voxel
 
                 # Always paint complementary bond with opposite (negative) color to the original
-                n_colors += 1
-                self.paint_bond(vertex1, n_colors)
-                self.paint_bond(vertex2, -1*n_colors)
+                self.n_colors += 1
+                self.paint_bond(vertex1, self.n_colors)
+                self.paint_bond(vertex2, -1*self.n_colors)
 
                 self.RecomputeSymmetries(voxel1)
 
