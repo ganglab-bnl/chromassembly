@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from .Voxel2 import Voxel
+from .Voxel import Voxel
 from .Bond import Bond
 from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
-from .Symmetry import SymmetryDf
+from .SymmetryDf import SymmetryDf
 
 class Mesovoxel:
     def __init__(self, Lattice, SymmetryDf):
@@ -16,7 +16,7 @@ class Mesovoxel:
         self.SymmetryDf = SymmetryDf
         self.structural_voxels, self.complementary_voxels = self.init_mesovoxel(Lattice)
 
-    def init_mesovoxel(self, Lattice: Lattice):
+    def init_mesovoxel(self, Lattice: Lattice) -> tuple[list[Voxel], list[Voxel]]:
         """
         Initialize a list of structural voxels.
         """
@@ -59,58 +59,69 @@ class BondPainter:
         """
         Manager class for coloring bonds between voxels in a lattice.
         """
-        self.Lattice = Lattice
+        self.lattice = Lattice
         self.SM = SurroundingsManager
-        self.SymmetryDf = SymmetryDf
+        self.symmetry_df = SymmetryDf
         # self.Mesovoxel = Mesovoxel(Lattice, SymmetryDf)
 
         self.n_colors = 0 # Count of total # colors (not including complementary) used to paint the MinDesign
     
-    def paint_mesovoxel(self, Mesovoxel: Mesovoxel):
+    def paint_mesovoxel(self,mesovoxel: Mesovoxel):
         """
         Paint all bonds between structural voxels in the Mesovoxel
         """
-        for structural_voxel in Mesovoxel.structural_voxels:
-            for vertex_direction in structural_voxel.vertex_directions:
+        for structural_voxel in mesovoxel.structural_voxels:
+            for direction in structural_voxel.vertex_directions:
 
                 # If vertex already painted, skip
-                vertex = structural_voxel.get_vertex(vertex_direction)
-                partner_voxel, partner_vertex = structural_voxel.get_partner(vertex_direction)
+                bond = structural_voxel.get_bond(direction)
+                partner_voxel, partner_bond = structural_voxel.get_partner(direction)
 
-                if vertex.bond.color is not None or partner_vertex.bond.color is not None:
+                if partner_bond.color is not None or partner_bond.color is not None:
                     continue
 
-                if partner_voxel in Mesovoxel.structural_voxels:
+                if partner_voxel in mesovoxel.structural_voxels:
                     # Always paint complementary bond with opposite (negative) color to the original
                     self.n_colors += 1
-                    self.paint_bond(vertex, self.n_colors)
-                    self.paint_bond(partner_vertex, -1*self.n_colors)
-                    print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.id} ({vertex.direction}) and voxel {partner_voxel.id} ({partner_vertex.direction})\n')
+                    self.paint_bond(bond, self.n_colors)
+                    self.paint_bond(partner_bond, -1*self.n_colors)
+                    print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.id} ({bond.direction}) and voxel {partner_voxel.id} ({partner_bond.direction})\n')
 
+    def paint_self_symmetries(self, Mesovoxel: Mesovoxel):
+        """
+        Paint all self-symmetries for each structural voxel in the Mesovoxel
+        """
+        for structural_voxel in Mesovoxel.structural_voxels:
+            self_symlist = self.symmetry_df.symlist(structural_voxel.id, structural_voxel.id)
+            if self_symlist is None:
+                continue
+            for symmetry_label in self_symlist:
+                #TODO: vertex rotation
+                pass
     
     def paint_bond(self, bond: Bond, color: int, bond_type: str=None):
         """
         Paint the bond on a given vertex with a given color.
         Optionally, denote whether it is a structural or mapped bond.
         """
-        vertex.bond.color = color
-        vertex.bond.bond_type = bond_type
+        bond.set_color(color)
+        bond.set_bond_type(bond_type)
 
     def paint_all_bonds(self):
         """
         Paint bonds between voxels in the lattice.
         """
-        for voxel1 in self.lattice.VoxelDict.values():
-            for vertex_coordinates, vertex1 in voxel1.vertices.items():
-                vertex2 = vertex1.vertex_partner
-                voxel2 = vertex2.voxel
+        for voxel1 in self.lattice.voxel_list:
+            for direction in voxel1.vertex_directions():
+                bond1 = voxel1.get_bond(direction)
+                _, bond2 = voxel1.get_partner(direction)
 
                 # Always paint complementary bond with opposite (negative) color to the original
                 self.n_colors += 1
-                self.paint_bond(vertex1, self.n_colors)
-                self.paint_bond(vertex2, -1*self.n_colors)
+                self.paint_bond(bond1, self.n_colors)
+                self.paint_bond(bond2, -1*self.n_colors)
 
-                self.RecomputeSymmetries(voxel1)
+                # self.RecomputeSymmetries(voxel1)
 
 
     def RecomputeSymmetries(self, voxel1):

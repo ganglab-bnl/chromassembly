@@ -33,6 +33,6 @@ class Bond:
         """Set the Bond object which this bond is connected to."""
         self.bond_partner = bond_partner
 
-    def set_bond_type(self, bond_type: str):
+    def set_bond_type(self, bond_type: str=None):
         """Set bond type to be either a 'structural' or 'mapped' bond."""
         self.bond_type = bond_type

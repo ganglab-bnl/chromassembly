@@ -51,7 +51,7 @@ class Visualizer(QWidget):
             np.array([0, 0, 1]) # z
         ]
         for axis in axes_directions:
-            shaft, arrow = Bond.create_bond(-3, -3, -3, axis)
+            shaft, arrow = Bond.create_bond_old(-3, -3, -3, axis)
             shaft.translate(-1, -1, -1)
             arrow.translate(-1, -1, -1)
             self.view.addItem(shaft)
@@ -87,12 +87,17 @@ class Visualizer(QWidget):
 
         for voxel in lattice.voxel_list:
             # Create all bonds for the voxel
-            voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
-                voxel.coordinates[0]*self.voxel_distance, 
-                voxel.coordinates[1]*self.voxel_distance, 
-                voxel.coordinates[2]*self.voxel_distance
-            )
-            for shaft, arrow in zip(voxel_shafts, voxel_arrows):
+            # voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
+            #     voxel.coordinates[0]*self.voxel_distance, 
+            #     voxel.coordinates[1]*self.voxel_distance, 
+            #     voxel.coordinates[2]*self.voxel_distance
+            # )
+            # for shaft, arrow in zip(voxel_shafts, voxel_arrows):
+            #     self.view.addItem(shaft)
+            #     self.view.addItem(arrow)
+
+            for bond in voxel.bonds:
+                shaft, arrow = Bond.create_bond(bond)
                 self.view.addItem(shaft)
                 self.view.addItem(arrow)
 

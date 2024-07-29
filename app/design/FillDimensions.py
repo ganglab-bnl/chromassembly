@@ -79,7 +79,7 @@ class FillDimensions(QWidget):
             if isinstance(widget, QLineEdit):
                 lattice.append(int(widget.text()))
         lattice = np.array(lattice).reshape(self.n_lay, self.n_row, self.n_col)
-        lattice = Lattice(lattice)
+        # lattice = Lattice(lattice)
         
         # Check if the parent widget has a 'lattice' attribute and set it
         self.parentWidget.setLattice(lattice)

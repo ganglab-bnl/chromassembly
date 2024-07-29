@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 import logging
 
-from .Voxel2 import Voxel
+from .Voxel import Voxel
 from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
+from .RotationDict import RotationDict
 
 class SymmetryDf:
     """
@@ -36,7 +37,7 @@ class SymmetryDf:
 
         # Create dictionary of all possible symmetry operations
         # Ex: {'90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), ...}
-        self.symmetry_operations = RotationManager.get_all_rotations()
+        self.symmetry_operations = RotationDict().all_rotations
         
         # The SymmetryDf data structure containing all voxel pairs and their symmetries
         # Ex: (0, 1): {'90° X-axis': True, '180° Y-axis': False, ...}
@@ -175,41 +176,6 @@ class SymmetryDf:
 
                     self.symmetry_df.loc[voxel_pair_label, sym_label] = has_symmetry # Store the result in symmetry_df
 
-    
-
-    @staticmethod
-    def make_voxel_pair_label(voxel_pair: frozenset) -> str:
-        """
-        Convert frozenset to string for use in representing voxel pairs in SymmetryDf
-        E.g., "frozenset({0, 1})" -> "(0, 1)"
-
-        @param:
-            - voxel_pair: a frozenset of two voxel.indices
-        @return:
-            - string: str, "(voxel1.id, voxel2.id)"
-        """
-        # Convert to sorted list for consistency
-        sorted_vpair_list = sorted(voxel_pair) 
-        # Convert each integer in list to str, join with ", ", then wrap in parentheses
-        frozen_str = "(" + ", ".join(map(str, sorted_vpair_list)) + ")" 
-        return frozen_str
-    
-    @staticmethod
-    def parse_voxel_pair_label(voxel_pair_label: str) -> list:
-        """
-        Convert string to frozenset for use in representing voxel pairs in SymmetryDf
-        E.g., "(0, 1)" -> frozenset({0, 1})
-
-        @param:
-            - voxel_pair_label: str, "(voxel1.id, voxel2.id)"
-        @return:
-            - voxel1, voxel2: list of ints, [voxel1.id, voxel2.id] or [voxel1.id]
-        """
-        # Remove parentheses and split by ", " to get a list of strings
-        voxel_pair_list = voxel_pair_label[1:-1].split(", ")
-        voxel_pair_list = map(int, voxel_pair_list)
-        return list(voxel_pair_list)
-
 
 class VoxelPair:
     """
@@ -268,79 +234,5 @@ class VoxelPair:
         return voxel2_id if voxel_id == voxel1_id else voxel1_id
     
 
-class RotationManager:
-    """Class to initialize and manage all rotation transformations"""
 
-    # Initialize dictionaries for transformation functions
-    translation = {
-        'translation': lambda x: x # Identity function
-    }
-    single_rotations = {
-        '90° X-axis': lambda x: np.rot90(x, 1, (0, 1)),
-        '180° X-axis': lambda x: np.rot90(x, 2, (0, 1)),
-        '270° X-axis': lambda x: np.rot90(x, 3, (0, 1)),
-        '90° Y-axis': lambda x: np.rot90(x, 1, (0, 2)),  
-        '180° Y-axis': lambda x: np.rot90(x, 2, (0, 2)),  
-        '270° Y-axis': lambda x: np.rot90(x, 3, (0, 2)),  
-        '90° Z-axis': lambda x: np.rot90(x, 1, (1, 2)),
-        '180° Z-axis': lambda x: np.rot90(x, 2, (1, 2)),
-        '270° Z-axis': lambda x: np.rot90(x, 3, (1, 2))
-    }
-    double_rotations = {}
-
-    @classmethod
-    def init_double_rotations(cls):
-        """
-        Initialize double_rotations to contain all possible combinations of single_rotations,
-        but excluding double rotations on the same axis.
-        @return:
-            - double_rotations: Dictionary of lambda functions for double rotations
-                                {"label1 + label2": lambda x: rotation2(rotation1(x))}
-        """
-        frozen_double_rotations = [] # List to store frozensets of double rotations (avoids duplicates)
-
-        for label1 in cls.single_rotations.keys():
-            for label2 in cls.single_rotations.keys():
-                # Create a frozen set of the pair of rotation labels
-                rotation_pair = frozenset([label1, label2])
-
-                # Get the last word in string (the axis) from each rotation label
-                rotation1_axis = label1.split(' ')[-1] 
-                rotation2_axis = label2.split(' ')[-1]
-
-                # Only consider double rotation if they are on different axes and not already considered
-                if rotation1_axis != rotation2_axis and rotation_pair not in frozen_double_rotations:
-                    frozen_double_rotations.append(rotation_pair)
-        
-        # Iterate through list of non-repeating double rotations and create a dictionary of lambda functions
-        double_rotations = {}
-        for rotation_pair in frozen_double_rotations:
-            label1, label2 = rotation_pair
-            rotation1, rotation2 = cls.single_rotations[label1], cls.single_rotations[label2]
-
-            double_rotations[f'{label1} + {label2}'] = \
-                        lambda x, rotation1=rotation1, rotation2=rotation2: rotation2(rotation1(x))
-            
-        # Sort the dictionary by key
-        sorted_double_rotations = {key: double_rotations[key] for key in sorted(double_rotations)}
-
-        cls.double_rotations = sorted_double_rotations
-    
-    @staticmethod
-    def get_all_rotations() -> dict[str, callable]:
-        """
-        Initialize all possible rotations for symmetry operations
-        @return:
-            - all_rotations: Dictionary of all possible rotations
-        
-        @example:
-            {'translation': lambda x: x, 
-            '90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), 
-            ...}
-        """
-        RotationManager.init_double_rotations()
-        all_rotations = {**RotationManager.translation, 
-                         **RotationManager.single_rotations, 
-                         **RotationManager.double_rotations}
-        return all_rotations
     

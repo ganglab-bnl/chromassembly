@@ -1,6 +1,6 @@
 import numpy as np
 # from .Voxel import Voxel, Vertex
-from .Voxel2 import Voxel
+from .Voxel import Voxel
 from .Bond import Bond
 
 
@@ -158,7 +158,7 @@ class Lattice:
                 voxel_bond.set_bond_partner(partner_bond)
                 partner_bond.set_bond_partner(voxel_bond)
 
-                # print(f"Filled partner: Voxel {voxel.id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.id} [{partner_voxel.material}]")
+                print(f"Filled partner: Voxel {voxel.id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.id} [{partner_voxel.material}]")
     
     def _get_partner(self, voxel, direction) -> tuple[Voxel, Bond]:
         """

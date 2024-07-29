@@ -1,138 +1,93 @@
 import numpy as np
-
-class Vertex:
-    def __init__(self, voxel, coordinates, direction, bond=None, vertex_partner=None):
-        """
-        A Vertex object associated with a Voxel parent and connected to a Bond.
-        @param:
-            - voxel: The parent Voxel object
-            - coordinates: tuple(int, int, int), euclidean coords of the vertex wrt. voxel @ (0, 0, 0)
-            - bond: Reference to the Bond object attached to this vertex
-            - vertex_partner: Reference to the Vertex object that this vertex 
-                              connects to within the lattice
-
-        This class is created with the suspicion that future voxels may require more 
-        precise coordinate encodings of vertex positions.
-        """
-        self.voxel = voxel
-        self.bond = bond
-
-        # For octahedral voxels, possible coordinates are
-        # (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)
-        self.coordinates = coordinates 
-        self.direction = direction # corresponding to +x, -x, +y, -y, +z, -z
-        self.vertex_partner = vertex_partner
+from .Bond import Bond
+import logging
 
 class Voxel:
-    def __init__(self, index, material, np_index, coordinates):
-        """
-        A Voxel object containing a particular material and location 
-        in the desired Lattice.
-        @param:
-            - index: Voxel 'number' in the Lattice.VoxelDict
-            - material: int, the material cargo of a voxel
-                -> 0: empty
-                -> 1=silver, 2=gold, 3=(...) etc.
-            - np_index: Voxel's coordinates in the Lattice.MinDesign np.array
-            - coordinates: Voxel's coordinates in MinDesign -> Euclidean space 
-                      (where bottom left corner of bottom layer is 0,0,0)
-        """
-        self.index = index
-        self.material = material
-        self.np_index = np_index
-        self.coordinates = coordinates
+    """
+    The 'Voxel' represents the octahedral DNA origami, to be tiled in
+    the 3D Lattice structure. It contains a material cargo (int) and 
+    6 Bonds attached to each vertex. 
 
-        # Each Voxel contains Vertex and Bond objects in each direction
-        # self.vertex_directions = ['+x', '-x', '+y', '-y', '+z', '-z'] # For octahedral voxels
-        
-        # Coordinates of voxel's vertices with voxel centered at (0, 0, 0)
-        self.vertex_directions = [
+    Methods:
+        - get_bond(direction): Get the bond in a given direction
+        - get_partner(direction): Returns partner Bond + Voxel objects 
+                                  in the supplied direction
+    """
+    def __init__(self, id: int, material: int, coordinates: tuple[float, float, float],
+                 np_index: tuple[int, int, int]):
+        """
+        Initialize a Voxel object with a unique ID, material, and coordinates.
+        @param:
+            - id: the unique identifier for the Voxel
+            - material: the material cargo of the Voxel
+            - coordinates: the Voxel's coordinates in the Lattice.MinDesign
+            - np_index: The 'material' value's index into the MinDesign np.array
+        """
+        self.id = id
+        self.material = material
+        self.coordinates = coordinates
+        self.np_index = np_index
+
+        # ----- Vertex information ----- #
+        # Vertex positions for octahedral structures
+        self.vertex_names = [
             "+x", "-x", 
             "+y", "-y", 
             "+z", "-z"
         ]
-        self.vertex_coordinates = [
+        # Vector (euclidean) representing direction of each vertex 
+        # wrt. the Voxel @ (0,0,0)
+        self.vertex_directions = [
             (1, 0, 0), (-1, 0, 0),   # +-x
             (0, 1, 0), (0, -1, 0),   # +-y
             (0, 0, 1), (0, 0, -1)    # +-z
         ]
-        self.vertices = self.init_vertices() # Dict of Vertex objects indexable by coordinates
+        # Initialize bond for each vertex
+        self.bonds = [Bond(voxel=self, direction=direction) for direction in self.vertex_directions]
 
-    def init_vertices(self):
-        """Initialize the vertices and bonds of the voxel."""
-        vertices = []
-        for coords in self.vertex_coordinates:
-            # Create a new vertex and attach an empty bond to it
-            direction = self.vertex_directions[self.vertex_coordinates.index(coords)]
-            new_vertex = Vertex(voxel=self, coordinates=coords, direction=direction)
-            new_bond = Bond(vertex=new_vertex)
-            new_vertex.bond = new_bond
-            vertices.append(new_vertex)
-        return vertices
-    
-    
-    def get_vertex(self, direction) -> Vertex:
+    # --- Public methods --- #
+    def get_bond(self, direction) -> Bond:
         """
-        Get the vertex in a given direction.
-        @param:
-            - direction: tuple(int, int, int), np.ndarray, or str, the euclidean direction to find 
-                         the vertex in, where direction is wrt. the voxel at (0,0,0)
-        @return:
-            - vertex: Vertex object
+        Get the bond in a given direction. Accepts '+x', '-y', etc. or 
+        a tuple/np.array representing the vector direction of the bond wrt. the
+        Voxel @ (0, 0, 0)
         """
-        # If direction supplied like "+x", "-y", etc.
-        if isinstance(direction, str):
-            vertex_index = self.vertex_directions.index(direction)
-            return self.vertices[vertex_index]
+        direction = self._handle_direction(direction)
+        bond_index = self.vertex_directions.index(direction)
+        return self.bonds[bond_index]
+    
+    def get_partner(self, direction) -> tuple:
+        """
+        Get the partner Voxel + Bond objects in the supplied direction.
+        (Direction can be str, tuple, or np.ndarray)
+        """
+        bond = self.get_bond(direction)
+        bond_partner = bond.bond_partner
 
-        # If direction supplied as a tuple or np.array
-        if isinstance(direction, np.ndarray):
+        if bond_partner is None:
+            logging.error(f"No bond partner found for Voxel {self.id} in direction {direction}")
+            return None, None
+
+        voxel_partner = bond_partner.voxel
+        return voxel_partner, bond_partner
+    
+    # --- Internal methods --- #
+    def _handle_direction(self, direction):
+        """
+        Formats any kind of 'direction' input into a tuple.
+        Handles:
+            - str: "+x", "-y", ...
+            - np.array: np.array([1, 0, 0]), ...
+            - tuple: (1, 0, 0), ...
+        """
+        if isinstance(direction, str): 
+            # Case 1: direction is a str "+x", "-y", ...
+            direction_index = self.vertex_names.index(direction)
+            direction = self.vertex_directions[direction_index]
+
+        elif isinstance(direction, np.ndarray): 
+            # Case 2: direction is a np.array([1, 0, 0]), ...
             direction = tuple(direction)
-        vertex_index = self.vertex_coordinates.index(direction)
-        return self.vertices[vertex_index]
-    
-
-    def get_partner(self, direction: tuple) -> tuple:
-        """
-        Get the binding partner voxel for the current instance in a given direction.
-        @param:
-            - direction: tuple(int, int, int) or np.array, the euclidean direction to find 
-                         the bond partner in, where direction is wrt. the voxel at (0,0,0)
-        @return:
-            - partner_voxel: Voxel object
-            - partner_vertex: Vertex object on partner_voxel which connects to the current instance
-        """
-        vertex = self.get_vertex(direction)
-        partner_vertex = vertex.vertex_partner
-
-        if partner_vertex is None:
-            raise ValueError("Partner vertex not yet initialized")
-
-        partner_voxel = partner_vertex.voxel
-        return partner_voxel, partner_vertex
-
-
-class Bond:
-    def __init__(self, vertex: Vertex, color: int=None, bond_partner=None, bond_type=None):
-        """
-        The Bond object which will be colored by the coloring algorithm.
-        @param:
-            - vertex: Vertex object that the bond is connected to
-            - color: int, Bond color
-            - bond_partner: Reference to the complementary Bond object that this bond 
-                            instance binds with
-            - bond_type: str, type of bond (either 'structural' or 'mapped')
-        """
-        self.vertex = vertex
-        self.color = color
-        self.bond_partner = bond_partner
-        self.bond_type = bond_type
-
-    def set_bond_partner(self, bond_partner):
-        """Set the Bond object which this bond is connected to."""
-        self.bond_partner = bond_partner
-
-    def set_bond_type(self, bond_type: str):
-        """Set bond type to be either a 'structural' or 'mapped' bond."""
-        self.bond_type = bond_type
+        
+        return direction # Now direction is a tuple :-)
 

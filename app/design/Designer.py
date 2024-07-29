@@ -6,7 +6,7 @@ from .FillDimensions import FillDimensions
 from algorithm.Lattice import Lattice
 
 class Designer(QWidget):
-    latticeSaved = pyqtSignal(Lattice)
+    latticeSaved = pyqtSignal(np.ndarray)
 
     def __init__(self):
         super().__init__()

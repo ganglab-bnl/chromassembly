@@ -9,6 +9,9 @@ class ColorDict:
         self.colordict = self._generate_colors(self.num_colors)
 
     def get_color(self, index):
+        if index is None:
+            return self.DEFAULT_COLOR
+
         if index < 0: # Complementary bonds
             index *= -1
         
