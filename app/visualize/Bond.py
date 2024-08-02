@@ -1,4 +1,5 @@
 import pyqtgraph.opengl as gl
+import numpy as np
 from algorithm.Voxel import Voxel
 from algorithm.Bond import Bond as AlgorithmBond
 from .ColorDict import ColorDict
@@ -116,8 +117,19 @@ class Bond:
                 color=color
             )
 
+        
+
+        if bond.color is None:
+            return shaft, None
+
+        # Negative bond colors imply complementarity, so reverse the arrowhead direction
         # Rotate the arrowhead to face the correct direction
-        arrowhead_rotation = cls.rotate_dict[bond.direction]
+        if bond.color < 0:
+            arrowhead_rotation = cls.rotate_dict[tuple(-np.array(bond.direction))]
+        else:
+            arrowhead_rotation = cls.rotate_dict[bond.direction]
+        
+
         arrowhead.rotate(*arrowhead_rotation)
         arrowhead.translate(x + dx*cls.shaft_length, 
                             y + dy*cls.shaft_length, 

@@ -99,7 +99,9 @@ class Visualizer(QWidget):
             for _, bond in voxel.bonds.items():
                 shaft, arrow = Bond.create_bond(bond)
                 self.view.addItem(shaft)
-                self.view.addItem(arrow)
+
+                if arrow is not None:
+                    self.view.addItem(arrow)
 
             # Create the voxel object
             new_voxel = Voxel.create_voxel(

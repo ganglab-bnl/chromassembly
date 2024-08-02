@@ -27,6 +27,7 @@ class SymmetryDf:
         - _init_symmetry_df: Initialize an empty symmetry_df with all possible voxel pairs and symmetry operations
         - _compute_all_symmetries: Compute all possible symmetries between all 2-combinations of voxels
     """
+    
     def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager):
         """
         Initialize the SymmetryDf object.

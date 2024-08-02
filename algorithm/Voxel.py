@@ -56,7 +56,7 @@ class Voxel:
         direction = self._handle_direction(direction)
         return self.bonds.get(direction)
     
-    def get_partner(self, direction) -> tuple:
+    def get_partner(self, direction) -> tuple['Voxel', Bond]:
         """
         Get the partner Voxel + Bond objects in the supplied direction.
         (Direction can be str, tuple, or np.ndarray)
@@ -71,6 +71,26 @@ class Voxel:
         voxel_partner = bond_partner.voxel
         return voxel_partner, bond_partner
     
+    def has_bond_partner_with(self, partner_voxel: 'Voxel'):
+        """If the voxel has a bond partner with the supplied Voxel object,
+        return the current Voxel's bond object which has the partner with the
+        partner_voxel."""
+
+        for bond in self.bonds.values():
+            if bond.bond_partner is None:
+                continue
+            if bond.bond_partner.voxel == partner_voxel:
+                return bond
+            
+        return None
+    
+    def get_direction_label(self, direction):
+        """
+        Get the label of the direction (ex: '+x', '-y', etc.)
+        """
+        direction = self._handle_direction(direction)
+        direction_index = self.vertex_directions.index(direction)
+        return self.vertex_names[direction_index]
 
     # --- Internal methods --- #
     def _handle_direction(self, direction):
