@@ -96,7 +96,7 @@ class Visualizer(QWidget):
             #     self.view.addItem(shaft)
             #     self.view.addItem(arrow)
 
-            for bond in voxel.bonds:
+            for _, bond in voxel.bonds.items():
                 shaft, arrow = Bond.create_bond(bond)
                 self.view.addItem(shaft)
                 self.view.addItem(arrow)
@@ -155,7 +155,7 @@ class RunVisualizer:
         self.toolbar.addAction("Exit", self.close)
         self.mainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         
-        # Assuming create_lattice is a method within VisualizeWindow to setup the lattice
+        # Draw the lattice structure of voxels + bonds
         self.window.create_lattice(lattice)
 
         self.mainWindow.show()

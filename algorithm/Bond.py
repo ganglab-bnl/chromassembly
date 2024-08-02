@@ -10,7 +10,7 @@ class Bond:
         -> Ex: 2=red, -2=red (complement)
     """
     def __init__(self, voxel: 'Voxel', direction: tuple[float, float, float], 
-                 color: int=None, bond_type: str=None, bond_partner: 'Bond'=None):
+                 color: int=None, type: str=None, bond_partner: 'Bond'=None):
         """
         Initialize a Bond object. It must be attached to a Voxel object with a 
         particular direction, but the other attributes can be filled in later.
@@ -21,7 +21,7 @@ class Bond:
 
         # Optional parameters, can be filled in later
         self.color = color 
-        self.bond_type = bond_type
+        self.type = type
         self.bond_partner = bond_partner
 
     # Setting methods
@@ -33,6 +33,6 @@ class Bond:
         """Set the Bond object which this bond is connected to."""
         self.bond_partner = bond_partner
 
-    def set_bond_type(self, bond_type: str=None):
+    def set_type(self, type: str=None):
         """Set bond type to be either a 'structural' or 'mapped' bond."""
-        self.bond_type = bond_type
+        self.type = type

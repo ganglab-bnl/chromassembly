@@ -1,7 +1,11 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import copy
 
-class RotationDict:
+from algorithm.Bond import Bond
+from algorithm.Voxel import Voxel
+
+class NpRotationDict:
     """
     Class to initialize and manage all (numpy) rotation transformations
     for use in SurroundingsManager.
@@ -75,7 +79,7 @@ class RotationDict:
     
     
 
-class VertexRotationDict:
+class ScipyRotationDict:
     """
     Class for (scipy) rotations for transforming the vertices based on euclidean 
     coordinate space. For use in BondPainter.
@@ -144,3 +148,27 @@ class VertexRotationDict:
         # Sort the dictionary by key
         sorted_double_rotations = {key: double_rotations[key] for key in sorted(double_rotations)}
         return sorted_double_rotations
+    
+
+class VoxelRotater:
+    def __init__(self):
+        self.scirot_dict = ScipyRotationDict()
+        
+    def rotate_voxel(self, voxel: Voxel, rot_label: str):
+        """
+        Rotates a single voxel and returns a new Voxel object containing the new 
+        rotated bonds. Used to compare bond colors in map_paint operations.
+        """
+        rot = self.scirot_dict.get_rotation(rot_label)
+        new_voxel = copy.deepcopy(voxel)
+
+        new_bonds = {}
+        for direction, bond in new_voxel.bonds.items():
+            direction = np.array(direction)
+            rotated_direction = tuple(np.round(rot(direction)).astype(int))
+            new_bond = new_voxel.get_bond(rotated_direction)
+            new_bond.direction = rotated_direction
+            new_bonds[rotated_direction] = new_bond
+        
+        new_voxel.bonds = new_bonds
+        return new_voxel

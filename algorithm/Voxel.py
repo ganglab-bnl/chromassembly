@@ -43,8 +43,9 @@ class Voxel:
             (0, 0, 1), (0, 0, -1)    # +-z
         ]
         # Initialize bond for each vertex
-        self.bonds = [Bond(voxel=self, direction=direction) for direction in self.vertex_directions]
+        self.bonds = {direction: Bond(voxel=self, direction=direction) for direction in self.vertex_directions}
 
+    
     # --- Public methods --- #
     def get_bond(self, direction) -> Bond:
         """
@@ -53,8 +54,7 @@ class Voxel:
         Voxel @ (0, 0, 0)
         """
         direction = self._handle_direction(direction)
-        bond_index = self.vertex_directions.index(direction)
-        return self.bonds[bond_index]
+        return self.bonds.get(direction)
     
     def get_partner(self, direction) -> tuple:
         """
@@ -71,6 +71,7 @@ class Voxel:
         voxel_partner = bond_partner.voxel
         return voxel_partner, bond_partner
     
+
     # --- Internal methods --- #
     def _handle_direction(self, direction):
         """

@@ -5,7 +5,7 @@ import logging
 from .Voxel import Voxel
 from .Lattice import Lattice
 from .Surroundings import SurroundingsManager
-from .RotationDict import RotationDict
+from .RotationDict import NpRotationDict
 
 class SymmetryDf:
     """
@@ -37,7 +37,7 @@ class SymmetryDf:
 
         # Create dictionary of all possible symmetry operations
         # Ex: {'90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), ...}
-        self.symmetry_operations = RotationDict().all_rotations
+        self.symmetry_operations = NpRotationDict().all_rotations
         
         # The SymmetryDf data structure containing all voxel pairs and their symmetries
         # Ex: (0, 1): {'90° X-axis': True, '180° Y-axis': False, ...}

@@ -137,9 +137,9 @@ class Lattice:
 
         # Print all voxel indices and coordinates
         ids = ', '.join(str(voxel.id) for voxel in voxel_list)
-        print(f'Initialized Voxels: {ids}')
+        # print(f'Initialized Voxels: {ids}')
         coords = ', '.join(str(coord) for coord in coord_list)
-        print(f'With coordinates: {coords}')
+        # print(f'With coordinates: {coords}')
 
         return voxel_list, coord_list
     
@@ -158,7 +158,7 @@ class Lattice:
                 voxel_bond.set_bond_partner(partner_bond)
                 partner_bond.set_bond_partner(voxel_bond)
 
-                print(f"Filled partner: Voxel {voxel.id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.id} [{partner_voxel.material}]")
+                # print(f"Filled partner: Voxel {voxel.id} [{voxel.material}] ---{direction}---> Voxel {partner_voxel.id} [{partner_voxel.material}]")
     
     def _get_partner(self, voxel, direction) -> tuple[Voxel, Bond]:
         """
