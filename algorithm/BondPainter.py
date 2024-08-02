@@ -178,5 +178,7 @@ class BondPainter:
         for direction, parent_bond in rotated_voxel.bonds.items():
             if parent_bond.color is not None:
                 child_bond = child_voxel.get_bond(direction)
+                if child_bond.color is not None:
+                    continue
                 self.paint_bond(child_bond, parent_bond.color, 'mapped')
                 print(f'MapBond (color = {parent_bond.color}) from bond {parent_bond.direction} -> bond {child_bond.direction}')
