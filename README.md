@@ -1,18 +1,44 @@
 # DNA-origami
 
-Code in-progress for Gang Lab
-
 This algorithm utilizes the symmetry of a 'voxel' containing a particular cargo in 3D space, and combinatorically searches for the minimum number of unique DNA bonds or 'colors' needed to facilitate the self-assembly of such a particle design.
 
-## The algorithm
+## Installation
 
-1. Build out the 'Surroundings'
-2. Create SymmetryDf
-3. Iteratively color bonds using symmetries
+Install the requirements `requirements.txt` and the current algorithm can all be run from the jupyter notebook in /notebooks/algorithm.ipynb
+
+## Code structure
+
+### The data structures
+
+1. Create a Lattice structure with Voxel/Bond objects
+2. Build out the 'Surroundings'
+3. Create SymmetryDf containing all possible truth values of symmetries between any two voxels
+
+### Coloring algorithm
+
+On a high level, the current coloring algorithm is as follows:
+
+"Preprocessing"
+1. Define all structurally unique voxels using SymmetryDf
+2. Paint all bonds between structural voxels
+3. Paint self-symmetries
+4. MapPaint the rest of the Lattice
+
+"Main loop"
+1. For each Voxel in Lattice -> for each Bond in Voxel
+2. Paint that bond and its partner bond (if both are unpainted)
+3. Paint both with their self-symmetries
+4. MapPaint the rest of the Lattice
+
+The MapPaint function accounts for the following **binding constraints**:
+
+- Bond color complimentarity
+- No palindromic binding
+
 
 ## GUI application
 
-To test out a simple GUI to create and visualize this lattice in 3D space, clone this repo, `/cd` into the root of this directory, and run:
+To test out a simple GUI to create and visualize a lattice (doesn't implement coloring algorithm yet), run the following in the directory root:
 
 ```shell
 python main.py
