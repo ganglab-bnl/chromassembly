@@ -84,6 +84,12 @@ class Voxel:
             
         return None
     
+    def print_bonds(self) -> None:
+        """Print all bonds of the Voxel."""
+        print(f"Voxel {self.id} ({self.material}):\n---")
+        for direction, bond in self.bonds.items():
+            print(f" -> {self.get_direction_label(direction)}: {bond.color}")
+    
     def get_direction_label(self, direction):
         """
         Get the label of the direction (ex: '+x', '-y', etc.)
@@ -91,6 +97,15 @@ class Voxel:
         direction = self._handle_direction(direction)
         direction_index = self.vertex_directions.index(direction)
         return self.vertex_names[direction_index]
+    
+    def is_palindromic(self, test_color: int) -> bool:
+        """
+        Check if adding a new bond color will create a palindromic structure.
+        """
+        for bond in self.bonds.values():
+            if bond.color == -1*test_color:
+                return True
+        return False
 
     # --- Internal methods --- #
     def _handle_direction(self, direction):

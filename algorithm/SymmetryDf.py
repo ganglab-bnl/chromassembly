@@ -87,13 +87,13 @@ class SymmetryDf:
                 symdict[voxel_pair_label] = current_symlist
         return symdict
     
-    def partner_symdict(self, voxel_id: int) -> dict[int, list]:
+    def partner_symdict(self, voxel_id: int) -> dict[int, list[str]]:
         """
         Get a symdict where the keys contain only the partner_voxel.id
 
         @param:
             - voxel_id: Voxel.id (int) to find all possible symlists for
-            - symdict: Dictionary of all voxel pairs with the given voxel
+
         @return:
             - partner_symdict: Dictionary of all voxel pairs with the given voxel 
                        and its partner voxel which have symlists of non-zero length

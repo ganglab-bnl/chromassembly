@@ -36,3 +36,8 @@ class Bond:
     def set_type(self, type: str=None):
         """Set bond type to be either a 'structural' or 'mapped' bond."""
         self.type = type
+
+    def get_label(self) -> str:
+        """Get a string label for the bond."""
+        direction_index = self.voxel.vertex_directions.index(self.direction)
+        return self.voxel.vertex_names[direction_index]

@@ -166,7 +166,7 @@ class VoxelRotater:
         for direction, bond in new_voxel.bonds.items():
             direction = np.array(direction)
             rotated_direction = tuple(np.round(rot(direction)).astype(int))
-            new_bond = new_voxel.get_bond(rotated_direction)
+            new_bond = new_voxel.get_bond(direction)
             new_bond.direction = rotated_direction
             new_bonds[rotated_direction] = new_bond
         

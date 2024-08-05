@@ -2,6 +2,7 @@ import numpy as np
 # from .Voxel import Voxel, Vertex
 from .Voxel import Voxel
 from .Bond import Bond
+import pandas as pd
 
 
 class Lattice:
@@ -20,7 +21,7 @@ class Lattice:
         - get_voxel: Get a Voxel object by its index or coordinates
         - get_partner: Get the bond partner of a voxel in a given direction
 
-    @private:
+    @internal:
         - _init_voxels: Initializes all Voxel + blank Bond objects and their coordinates
                         in the Lattice.MinDesign
         - _fill_partners: Fills all bond partners on all voxels in voxel_list in place
@@ -71,6 +72,32 @@ class Lattice:
 
         voxel = self.voxel_list[voxel_index] # Omiting error handling because it's self explanatory
         return voxel
+
+    def final_df(self) -> pd.DataFrame:
+        """
+        Returns the final dataframe of the lattice.
+        """
+        # Lists to store combined voxel and bond information
+        final_df = []
+
+        # Iterate through the voxels and bonds
+        for voxel in self.voxel_list:
+            row = {
+                ('Voxel', 'ID'): voxel.id,
+                ('Voxel', 'Material'): voxel.material,
+                ('Voxel', 'Coordinates'): voxel.coordinates
+            }
+            for direction, bond in voxel.bonds.items():
+                row[('Bond Colors', bond.get_label())] = bond.color
+            final_df.append(row)
+
+        # Create a DataFrame from the combined list
+        final_df = pd.DataFrame(final_df)
+
+        # Convert the columns to a MultiIndex
+        final_df.columns = pd.MultiIndex.from_tuples(final_df.columns)
+
+        return final_df
 
     # Internal methods
     def _is_unit_cell(lattice: np.array) -> bool:
