@@ -32,7 +32,7 @@ On a high level, the current coloring algorithm is as follows:
 
 The MapPaint function accounts for the following **binding constraints**:
 
-- Bond color complimentarity
+- Bond color complementarity
 - No palindromic binding
 
 

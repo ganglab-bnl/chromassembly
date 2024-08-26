@@ -174,3 +174,29 @@ class VoxelRotater:
         
         new_voxel.bonds = new_bonds
         return new_voxel
+        
+    def rotate_voxel_bonds(self, voxel: Voxel, rot_label: str) -> dict[tuple[int, int, int], int]:
+        """
+        Rotates a single voxel and returns a dictionary containing the rotated 
+        directions as keys and the corresponding bond colors as values.
+        
+        Args:
+            voxel (Voxel): The voxel to be rotated.
+            rot_label (str): The rotation label to be applied.
+            
+        Returns:
+            bond_dict (dict): A dictionary where keys are the rotated directions 
+                              and values are the bond colors.
+        """
+        rot = self.scirot_dict.get_rotation(rot_label)
+        
+        bond_dict = {}
+        for direction, bond in voxel.bonds.items():
+            # Rotate the direction vector of the bond
+            direction = np.array(direction)
+            rotated_direction = tuple(np.round(rot(direction)).astype(int))
+
+            # Store the color in the bond_dict with the rotated direction as the key
+            bond_dict[rotated_direction] = bond.color
+        
+        return bond_dict

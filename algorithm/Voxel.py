@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+import copy
 from .Bond import Bond
 
 class Voxel:
@@ -90,7 +91,7 @@ class Voxel:
         """Print all bonds of the Voxel."""
         print(f"Voxel {self.id} ({self.material}):\n---")
         for direction, bond in self.bonds.items():
-            print(f" -> {self.get_direction_label(direction)}: {bond.color}")
+            print(f" -> {self.get_direction_label(direction)}: {bond.color}, {bond.type}")
     
     def get_direction_label(self, direction):
         """
@@ -103,16 +104,37 @@ class Voxel:
     def is_palindromic(self, test_color: int) -> bool:
         """
         Check if adding a new bond color will create a palindromic structure.
+
+        Args:
+            test_color (int): The color of the new bond we're considering to add
         """
         for bond in self.bonds.values():
             if bond.color == -1*test_color:
                 return True
         return False
 
+    def get_bond_type(self, color: int) -> str:
+        """
+        Get the bond type for all bonds of the given color on the Voxel.
+        Args:
+            color (int): The color of the bond to search for
+
+        Returns:
+            bond_type (str): The bond type of all bonds on the voxel with the 
+                             given color (None if not found)
+        """
+        for bond in self.bonds.values():
+            if bond.color == color:
+                return bond.type
+        return None
+    
     def is_equal_to(self, voxel2: 'Voxel') -> bool:
         """
         Check if two voxels are equal based on the colors of their bonds
-        in the corresponding directions.
+        in the corresponding directions, and of course the material cargo.
+
+        Args:
+            voxel2 (Voxel): The second voxel to compare with
         """
         if self.material != voxel2.material:
             return False
@@ -122,6 +144,78 @@ class Voxel:
                 return False
 
         return True
+    
+    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], int]) -> bool:
+        """
+        Check if the bonds of the Voxel are equal to the given bond_dict.
+        Args:
+            bond_dict (dict): A dictionary where keys are the bond directions 
+                              and values are the bond colors
+        """
+        for direction, color in bond_dict.items():
+            if self.bonds[direction].color != color:
+                return False
+        return True
+    
+    def repaint_complement(self, color: int, complement: int) -> None:
+        """
+        Repaint the bonds of the given color to their complement.
+        Args:
+            color (int): The abs(color) of the bonds to repaint
+        """
+        for bond in self.bonds.values():
+            if abs(bond.color) == color:
+                bond.color = abs(bond.color)*complement
+    
+    def flip_complementarity(self, color: int, flipped_voxels=None) -> dict[int, int]:
+        """
+        Flip the complementarity of the bonds with the given color.
+        
+        Args:
+            color (int): The abs(color) of the bonds to flip
+        
+        Returns:
+            flipped_voxels (dict[int, int]): Dictionary of voxel IDs that would be flipped
+                                            and their complementarity multipliers (+1 or -1)
+        """
+        if flipped_voxels is None:
+            flipped_voxels = {}
+
+        # Determine the current complementarity of the voxel
+        current_complementarity = self.get_complementarity(color)
+        
+        # If this voxel is already flipped, skip it
+        if self.id in flipped_voxels:
+            return flipped_voxels
+
+        # Register the flip for the current voxel
+        flipped_voxels[self.id] = -current_complementarity  # Flip the complementarity
+
+        for bond in self.bonds.values():
+            if abs(bond.color) == color:
+                partner_voxel = bond.bond_partner.voxel
+
+                # Recursively flip the partner voxel if it hasn't been flipped already
+                if partner_voxel.id not in flipped_voxels:
+                    flipped_voxels = partner_voxel.flip_complementarity(color, flipped_voxels)
+
+        return flipped_voxels
+
+
+    
+    def get_complementarity(self, color: int) -> int:
+        """
+        Get the complementarity of the bonds with the given color.
+        Args:
+            color (int): The abs(color) of the bonds to check
+        Returns:
+            complementarity (int): Whether the bond is the color (1) or its complement (-1)
+        """
+        for bond in self.bonds.values():
+            if abs(bond.color) == color:
+                complementarity = bond.color // abs(bond.color)
+                return complementarity
+        # return complementarity
 
     # --- Internal methods --- #
     def _handle_direction(self, direction):
