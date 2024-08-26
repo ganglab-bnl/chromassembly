@@ -67,6 +67,7 @@ class Lattice:
         self.Surroundings = None
         self.SymmetryDf = None
         self.colordict = None
+        self.default_color_config = {}
 
     # --- Public methods ---
     def compute_symmetries(self):
@@ -171,6 +172,7 @@ class Lattice:
 
         return unique_origami
     
+    
     def init_colordict(self) -> dict[int, list[int]]:
         """
         Get dictionary of all colors in the lattice and a list of their corresponding
@@ -230,6 +232,8 @@ class Lattice:
             complementarity = voxel.get_complementarity(color)
             default_color_config[voxel_id] = complementarity
 
+        self.default_color_config[color] = default_color_config
+
         # Add default configuration to the list and set
         color_configs.append(default_color_config)
         seen_configs.add(tuple(sorted(default_color_config.items())))
@@ -267,6 +271,12 @@ class Lattice:
             for voxel_id, complementarity in config.items():
                 voxel = self.get_voxel(voxel_id)
                 voxel.repaint_complement(color, complementarity)
+
+    def reset_color_config(self) -> None:
+        """
+        Reset the color configurations of all voxels to the default configuration.
+        """
+        self.apply_color_configs(self.default_color_config)
 
     # --- Internal methods ---
     def _is_unit_cell(lattice: np.ndarray) -> bool:

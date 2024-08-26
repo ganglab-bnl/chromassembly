@@ -145,16 +145,25 @@ class Voxel:
 
         return True
     
-    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], int]) -> bool:
+    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], int], comp_matters=True) -> bool:
         """
         Check if the bonds of the Voxel are equal to the given bond_dict.
+        A faster version of is_equal_to, without deepcopying.
         Args:
             bond_dict (dict): A dictionary where keys are the bond directions 
                               and values are the bond colors
         """
         for direction, color in bond_dict.items():
-            if self.bonds[direction].color != color:
+            if not comp_matters:
+                new_color = abs(color)
+                old_color = abs(self.bonds[direction].color)
+            else:
+                new_color = color
+                old_color = self.bonds[direction].color
+
+            if old_color != new_color:
                 return False
+            
         return True
     
     def repaint_complement(self, color: int, complement: int) -> None:

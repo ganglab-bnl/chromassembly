@@ -17,8 +17,47 @@ class ColorTree:
         """
         Finds the optimal path of color configurations that minimizes the unique origami count.
         """
-        self.optimal_path = self._find_minimal_path(self.all_color_configs)
+        reduced_color_configs = self._reduce_color_configs(self.all_color_configs)
+        self.optimal_path = self._find_minimal_path(reduced_color_configs)
         return self.optimal_path
+    
+    def _reduce_color_configs(self, all_color_configs):
+        """
+        Find the best color configs for each color in the lattice, THEN find the best path.
+        """
+
+        new_all_color_configs = {}
+        total_colors = len(all_color_configs)
+
+        print(f"Evaluating color-wise configurations for {total_colors} colors...")
+
+        for color_index, (color, configs) in enumerate(all_color_configs.items(), 1):
+
+            best_configs = []
+            min_unique_count = float('inf')
+            total_configs = len(configs)
+            for config_index, config in enumerate(configs, 1):
+                color_config = {color: config}
+                self.lattice.apply_color_configs(self.lattice.default_color_config) # Reset
+                self.lattice.apply_color_configs(color_config)
+                unique_count = len(self.lattice.unique_origami())
+
+                # Add the color config to the best_configs list if it has the lowest unique count
+                if unique_count < min_unique_count:
+                    min_unique_count = unique_count
+                    best_configs = [config]
+                elif unique_count == min_unique_count:
+                    best_configs.append(config)
+
+                # Update the loading message in place
+                print(f"Evaluating color {color_index}/{total_colors}, config {config_index}/{total_configs}...", end='\r', flush=True)
+
+            new_all_color_configs[color] = best_configs
+
+        # Final message after the loop completes
+        print("\nDone with color-wise evaluation.")
+
+        return new_all_color_configs
         
     def _find_minimal_path(self, all_color_configs):
         """
@@ -29,6 +68,10 @@ class ColorTree:
         color_config_combinations = itertools.product(
             *[[(color, config) for config in configs] for color, configs in all_color_configs.items()]
         )
+
+        # all_color_configs = lattice.init_all_color_configs()
+        for color in all_color_configs:
+            print(f'Color {color} has {len(all_color_configs[color])} configurations.')
 
         num_combinations = math.prod(len(configs) for configs in all_color_configs.values())
         print(f"Searching for minimum origami across {num_combinations} possibilities...")
