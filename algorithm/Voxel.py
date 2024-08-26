@@ -1,6 +1,6 @@
 import numpy as np
-from .Bond import Bond
 import logging
+from .Bond import Bond
 
 class Voxel:
     """
@@ -43,7 +43,9 @@ class Voxel:
             (0, 0, 1), (0, 0, -1)    # +-z
         ]
         # Initialize bond for each vertex
-        self.bonds = {direction: Bond(voxel=self, direction=direction) for direction in self.vertex_directions}
+        self.bonds = {
+            direction: Bond(voxel=self, direction=direction) for direction in self.vertex_directions
+        }
 
     
     # --- Public methods --- #
@@ -106,6 +108,20 @@ class Voxel:
             if bond.color == -1*test_color:
                 return True
         return False
+
+    def is_equal_to(self, voxel2: 'Voxel') -> bool:
+        """
+        Check if two voxels are equal based on the colors of their bonds
+        in the corresponding directions.
+        """
+        if self.material != voxel2.material:
+            return False
+
+        for direction in self.vertex_directions:
+            if self.bonds[direction].color != voxel2.bonds[direction].color:
+                return False
+
+        return True
 
     # --- Internal methods --- #
     def _handle_direction(self, direction):

@@ -1,19 +1,18 @@
-import numpy as np
 from math import ceil, floor
+import numpy as np
 from .Voxel import Voxel
 from .Lattice import Lattice
 
 
-class SurroundingsManager:
+class Surroundings:
     def __init__(self, lattice: Lattice):
         """
         Manager class for creating, transforming, and comparing VoxelSurroundings
         matrices for a given lattice design.
         """
-        self.lattice = lattice
         self.FullSurroundings = self._init_full_surroundings(lattice)
 
-    def get_voxel_surroundings(self, voxel: Voxel):
+    def voxel_surroundings(self, voxel: Voxel):
         """
         Get the VoxelSurroundings for a given voxel in the UnitCell, in which each value 
         represents the voxel.material for each voxel and its VoxelSurroundings.

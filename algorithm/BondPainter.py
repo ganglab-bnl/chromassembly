@@ -6,16 +6,16 @@ import copy
 from .Voxel import Voxel
 from .Bond import Bond
 from .Lattice import Lattice
-from .Surroundings import SurroundingsManager
+from .Surroundings import Surroundings
 from .SymmetryDf import SymmetryDf
-from .RotationDict import VoxelRotater
+from .Rotation import VoxelRotater
 
 class Mesovoxel:
-    def __init__(self, lattice: Lattice, symmetry_df: SymmetryDf):
+    def __init__(self, lattice: Lattice):
         """
         Mesovoxel to manipulate a set of structural / complementary voxels as we paint.
         """
-        self.structural_voxels = self.init_structural_voxels(lattice, symmetry_df)
+        self.structural_voxels = self.init_structural_voxels(lattice, lattice.SymmetryDf)
         self.complementary_voxels: Set[int] = set()
 
     def init_structural_voxels(self, lattice: Lattice, symmetry_df: SymmetryDf) -> set[int]:
@@ -56,14 +56,14 @@ class Mesovoxel:
         return None
 
 class BondPainter:
-    def __init__(self, lattice: Lattice, symmetry_df: SymmetryDf):
+    def __init__(self, lattice: Lattice):
         """
         Manager class for coloring bonds between voxels in a lattice.
         """
         self.lattice = lattice
-        self.symmetry_df = symmetry_df
+        self.symmetry_df = lattice.SymmetryDf
         self.voxel_rotater = VoxelRotater()
-        self.mesovoxel = Mesovoxel(lattice, symmetry_df)
+        self.mesovoxel = Mesovoxel(lattice)
 
         self.n_colors = 0 # Count of total # colors (not including complementary) used to paint the MinDesign
     
@@ -145,7 +145,8 @@ class BondPainter:
         Optionally, denote whether it is a structural or mapped bond.
         """
         bond.set_color(color)
-        bond.set_type(type)
+        if type is not None:
+            bond.set_type(type)
 
     def paint_self_symmetries(self, voxel: Voxel):
         """
@@ -202,16 +203,18 @@ class BondPainter:
             # If child_bond's partner is colored, check both palindromic and complementarity
             else:
                 is_complimentary = child_bond_copy.bond_partner.color == -1*parent_bond.color
-                # print(f"Complimentary? {is_complimentary}")
-                if is_complimentary and not is_palindromic: # Both satisfied
+                # Both satisfied
+                if is_complimentary and not is_palindromic: 
                     map_color = parent_bond.color
+                
                 elif not is_complimentary and is_palindromic:
                     map_color = -1*parent_bond.color
+
                 else: # The bad end
-                    return
                     # If only one of the conditions is satisfied, don't map paint
                     # the entire voxel
                     #  (avoids infinite loop)
+                    return
 
             self.paint_bond(child_bond_copy, map_color, 'mapped')
             # self.paint_bond(child_bond.bond_partner, -1*parent_bond.color, 'mapped')

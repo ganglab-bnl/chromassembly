@@ -6,7 +6,7 @@ import copy
 from .Voxel import Voxel
 from .Bond import Bond
 from .Lattice import Lattice
-from .Surroundings import SurroundingsManager
+from .Surroundings import Surroundings
 from .SymmetryDf import SymmetryDf
 from .RotationDict import VoxelRotater
 

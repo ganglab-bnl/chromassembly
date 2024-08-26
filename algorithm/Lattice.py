@@ -1,39 +1,50 @@
+"""A Lattice class to store and manage a 3D lattice of voxels.
+
+The central class containing the Voxels + Bonds to be manipulated in 
+place by the coloring algorithm. Also contains all necessary components to
+color the lattice, including the Surroundings and SymmetryDf objects.
+
+Need to call Lattice.compute_symmetries() to fill the SymmetryDf in place.
+
+Instances of this class are the direct input to the Visualizer GUI.
+"""
+
 import numpy as np
-# from .Voxel import Voxel, Vertex
+import pandas as pd
 from .Voxel import Voxel
 from .Bond import Bond
-import pandas as pd
-
+from .Rotation import VoxelRotater
 
 class Lattice:
     """
     Lattice class to store and manage a 3D lattice of voxels.
 
-    @attr:
-        - UnitCell: 3D np.array(ints), has repeated x, y, z layers
-        - MinDesign: 3D np.array(ints), minimum copy-pastable design
-            -> int := Voxel.material
-            -> Coordinate system based on Voxel location in MinDesign
-        - voxel_list: List of Voxel objects
-        - coord_list: List of each Voxel's coordinates in euclidean space
+    Attributes:
+        UnitCell: 3D np.array(ints), has repeated x, y, z layers
+        MinDesign: 3D np.array(ints), minimum copy-pastable design
+            - int := Voxel.material
+            - Coordinate system based on Voxel location in MinDesign
+        voxel_list: List of Voxel objects
+        coord_list: List of each Voxel's coordinates in euclidean space
 
-    @methods:
-        - get_voxel: Get a Voxel object by its index or coordinates
-        - get_partner: Get the bond partner of a voxel in a given direction
-
-    @internal:
-        - _init_voxels: Initializes all Voxel + blank Bond objects and their coordinates
+    Methods:
+        get_voxel: Get a Voxel object by its index or coordinates
+        get_partner: Get the bond partner of a voxel in a given direction
+        _is_unit_cell: Returns whether a given lattice is a unit cell
+        _init_voxels: Initializes all Voxel + blank Bond objects and their coordinates
                         in the Lattice.MinDesign
-        - _fill_partners: Fills all bond partners on all voxels in voxel_list in place
-        - _get_partner: Internal method to get the bond partner of a voxel 
-        - _is_unit_cell: Returns whether a given lattice is a unit cell
+        _fill_partners: Fills all bond partners on all voxels in voxel_list in place
+        _get_partner: Internal method to get the bond partner of a voxel (for _fill_partners)
     """
     
     def __init__(self, input_lattice: np.array):
         """
-        Initialize a matrix of voxels forming the unit cell in 3D space.
-        @param:
-            - input_lattice:  3D np.array of ints (direct output from LatticeCreator)
+        Initialize the objects and data structures needed for the coloring algorithm.
+        Maps the user's lattice design into 3D space, creates Voxel objects,
+        the Surroundings, 
+        
+        Parameters:
+            - input_lattice:  3D np.array of ints (direct output from GUI)
         """
         # Was user's design already a unit cell?
         is_unit_cell = Lattice._is_unit_cell(input_lattice)
@@ -48,7 +59,26 @@ class Lattice:
         self.voxel_list, self.coord_list = self._init_voxels(self.MinDesign)
         self._fill_partners()
 
-    # Public methods
+        # Algorithm data structures
+        self.VoxelRotater = VoxelRotater()
+        self.Surroundings = None
+        self.SymmetryDf = None
+
+    # --- Public methods ---
+    def compute_symmetries(self):
+        """
+        Compute all symmetries for the Lattice and fill the SymmetryDf.
+        Fills in self.Surroundings, which is needed to fill self.SymmetryDf in place.
+        """
+        from .Surroundings import Surroundings
+        from .SymmetryDf import SymmetryDf
+
+        # Initializing Surroundings + SymmetryDf (order matters)
+        # computes all symmetries in place and fills a dataframe, 'SymmetryDf'
+        # with all possible voxel pairs and their symmetries
+        self.Surroundings = Surroundings(self)
+        self.SymmetryDf = SymmetryDf(self)
+
     def get_voxel(self, id) -> Voxel:
         """
         Get a Voxel object by its index or coordinates depending on the supplied parameter.
@@ -98,8 +128,46 @@ class Lattice:
         final_df.columns = pd.MultiIndex.from_tuples(final_df.columns)
 
         return final_df
+    
+    def unique_origami(self) -> list[int]:
+        """
+        Returns a list of unique origami (Voxel+Bonds) in the lattice.
+        """
+        if self.SymmetryDf is None:
+            raise ValueError("SymmetryDf not computed yet. Run Lattice.compute_symmetries() first.")
+        
+        unique_origami = []
+        for voxel1 in self.voxel_list:
 
-    # Internal methods
+            if unique_origami == []:
+                unique_origami.append(voxel1.id)
+                continue
+
+            is_unique = True
+            for voxel2_id in unique_origami:
+
+                voxel2 = self.get_voxel(voxel2_id)
+                # Origami can only be non-unique if they share some symmetry
+                symlist = self.SymmetryDf.symlist(voxel1.id, voxel2.id)
+                if symlist == []:
+                    continue
+
+                for sym_label in symlist:
+                    rot_voxel = self.VoxelRotater.rotate_voxel(voxel1, sym_label)
+                    # Check the color of each bond in the rotated voxel
+                    if rot_voxel.is_equal_to(voxel2):
+                        is_unique = False
+                        break
+
+                if not is_unique:
+                    break
+
+            if is_unique:
+                unique_origami.append(voxel1.id)
+
+        return unique_origami
+
+    # --- Internal methods ---
     def _is_unit_cell(lattice: np.array) -> bool:
         """
         Returns whether a given lattice (np.array) is a unit cell.

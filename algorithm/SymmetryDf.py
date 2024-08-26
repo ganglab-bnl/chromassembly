@@ -4,8 +4,9 @@ import logging
 
 from .Voxel import Voxel
 from .Lattice import Lattice
-from .Surroundings import SurroundingsManager
-from .RotationDict import NpRotationDict
+from .Surroundings import Surroundings
+from .Rotation import NpRotationDict
+
 
 class SymmetryDf:
     """
@@ -13,7 +14,7 @@ class SymmetryDf:
 
     @attr:
         - Lattice: Lattice object
-        - SurroundingsManager: SurroundingsManager object
+        - Surroundings: Surroundings object
         - symmetry_operations: Dictionary of all possible symmetry operations
         - symmetry_df: pd.DataFrame object containing all voxel pairs and their symmetries
     
@@ -28,13 +29,13 @@ class SymmetryDf:
         - _compute_all_symmetries: Compute all possible symmetries between all 2-combinations of voxels
     """
     
-    def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager):
+    def __init__(self, lattice: Lattice):
         """
         Initialize the SymmetryDf object.
         """
-        # Store references to lattice and SurroundingsManager objects for use in symmetry comparisons
+        # Store references to lattice and Surroundings objects for use in symmetry comparisons
         self.Lattice = lattice
-        self.SurroundingsManager = SurroundingsManager
+        self.Surroundings = lattice.Surroundings
 
         # Create dictionary of all possible symmetry operations
         # Ex: {'90° X-axis': lambda x: np.rot90(x, 1, (0, 1)), ...}
@@ -156,7 +157,7 @@ class SymmetryDf:
             for voxel1 in self.Lattice.voxel_list:
 
                 # Transform surroundings of voxel1 once per symmetry
-                voxel1_surroundings = self.SurroundingsManager.get_voxel_surroundings(voxel1)
+                voxel1_surroundings = self.Surroundings.voxel_surroundings(voxel1)
                 transformed_voxel1_surroundings = sym_function(voxel1_surroundings)
 
                 for voxel2 in self.Lattice.voxel_list:
@@ -172,7 +173,7 @@ class SymmetryDf:
 
                     # Check symmetry:
                     # Two voxels are symmetric if their surroundings are the same after one is transformed
-                    voxel2_surroundings = self.SurroundingsManager.get_voxel_surroundings(voxel2)
+                    voxel2_surroundings = self.Surroundings.voxel_surroundings(voxel2)
                     has_symmetry = np.array_equal(transformed_voxel1_surroundings, voxel2_surroundings) 
 
                     self.symmetry_df.loc[voxel_pair_label, sym_label] = has_symmetry # Store the result in symmetry_df

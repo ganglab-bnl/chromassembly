@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from ..Voxel import Voxel
 from .old_lattice import Lattice
-from ..Surroundings import SurroundingsManager
+from ..Surroundings import Surroundings
 
 class Symmetry:
     """
@@ -75,12 +75,12 @@ class Symmetry:
         return symmetries
 
 class SymmetryManager:
-    def __init__(self, lattice: Lattice, SurroundingsManager: SurroundingsManager):
+    def __init__(self, lattice: Lattice, Surroundings: Surroundings):
         """
         Manager class for performing symmetry operations on VoxelSurroundings
         """
         self.Lattice = lattice
-        self.SurroundingsManager = SurroundingsManager
+        self.Surroundings = Surroundings
         self.SymmetryDict = self.initSymmetryDict()
 
         self.translation = {
@@ -177,7 +177,7 @@ class SymmetryManager:
             for voxel1 in self.Lattice.VoxelDict.values():
 
                 # Transform surroundings of voxel1 once per symmetry
-                voxel1_surroundings = self.SurroundingsManager.getVoxelSurroundings(voxel1)
+                voxel1_surroundings = self.Surroundings.getVoxelSurroundings(voxel1)
                 transformed_voxel1_surroundings = trans_function(voxel1_surroundings)
 
                 for voxel2 in self.Lattice.VoxelDict.values():
@@ -191,7 +191,7 @@ class SymmetryManager:
 
                     # Check symmetry:
                     # Two Voxels are symmetric if their surroundings are the same after one is transformed
-                    voxel2_surroundings = self.SurroundingsManager.getVoxelSurroundings(voxel2)
+                    voxel2_surroundings = self.Surroundings.getVoxelSurroundings(voxel2)
                     has_symmetry = np.array_equal(transformed_voxel1_surroundings, voxel2_surroundings) 
 
                     symmetry_obj.setSymmetry(trans_type, trans_label, has_symmetry) # Append result to symmetry object
@@ -242,7 +242,7 @@ if __name__ == '__main__':
     print(f'Voxels:\n{lattice.VoxelDict}\n')
     print(f'Voxel indices:\n{[voxel.index for voxel in lattice.VoxelDict.values()]}\n')
 
-    surr_manager = SurroundingsManager(lattice)
+    surr_manager = Surroundings(lattice)
     print(f'Full surroundings:\n{surr_manager.FullSurroundings}\n')
     # print(f'VoxelSurroundings for voxel 0:\n{surr_manager.getVoxelSurroundings(lattice.voxels[0])}\n')
     # print(f'VoxelSurroundings for voxel 1:\n{surr_manager.getVoxelSurroundings(lattice.voxels[1])}\n')

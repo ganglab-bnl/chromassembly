@@ -8,7 +8,7 @@ from algorithm.Voxel import Voxel
 class NpRotationDict:
     """
     Class to initialize and manage all (numpy) rotation transformations
-    for use in SurroundingsManager.
+    for use in Surroundings.
     """
 
     def __init__(self):
@@ -154,7 +154,7 @@ class VoxelRotater:
     def __init__(self):
         self.scirot_dict = ScipyRotationDict()
         
-    def rotate_voxel(self, voxel: Voxel, rot_label: str):
+    def rotate_voxel(self, voxel: Voxel, rot_label: str) -> Voxel:
         """
         Rotates a single voxel and returns a new Voxel object containing the new 
         rotated bonds. Used to compare bond colors in map_paint operations.
@@ -164,11 +164,13 @@ class VoxelRotater:
 
         new_bonds = {}
         for direction, bond in new_voxel.bonds.items():
+            # Rotate the direction vector of the bond
             direction = np.array(direction)
             rotated_direction = tuple(np.round(rot(direction)).astype(int))
-            new_bond = new_voxel.get_bond(direction)
-            new_bond.direction = rotated_direction
-            new_bonds[rotated_direction] = new_bond
+
+            old_bond = new_voxel.get_bond(direction)
+            old_bond.direction = rotated_direction
+            new_bonds[rotated_direction] = old_bond
         
         new_voxel.bonds = new_bonds
         return new_voxel
