@@ -108,6 +108,9 @@ class Voxel:
         Args:
             test_color (int): The color of the new bond we're considering to add
         """
+        if test_color is None:
+            return False
+        
         for bond in self.bonds.values():
             if bond.color == -1*test_color:
                 return True
@@ -192,6 +195,8 @@ class Voxel:
 
         # Determine the current complementarity of the voxel
         current_complementarity = self.get_complementarity(color)
+        if current_complementarity is None:
+            raise ValueError(f"Voxel {self.id} does not have a bond with color {color}")
         
         # If this voxel is already flipped, skip it
         if self.id in flipped_voxels:
@@ -221,7 +226,7 @@ class Voxel:
             complementarity (int): Whether the bond is the color (1) or its complement (-1)
         """
         for bond in self.bonds.values():
-            if abs(bond.color) == color:
+            if abs(bond.color) == abs(color):
                 complementarity = bond.color // abs(bond.color)
                 return complementarity
         # return complementarity

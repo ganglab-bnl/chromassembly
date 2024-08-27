@@ -157,7 +157,7 @@ class BondPainter:
         for sym_label in self_symlist:
             if sym_label == "translation":
                 continue
-            self.map_paint(voxel, voxel, sym_label)
+            self.map_paint2(voxel, voxel, sym_label)
 
     def map_paint(self, parent_voxel: Voxel, child_voxel: Voxel, sym_label: str) -> None:
         """
@@ -196,12 +196,12 @@ class BondPainter:
 
             # If child_bond's partner is colored, check both palindromic and complementarity
             else:
-                is_complimentary = child_bond_copy.bond_partner.color == -1*parent_bond.color
+                is_complementary = child_bond_copy.bond_partner.color == -1*parent_bond.color
                 # Both satisfied
-                if is_complimentary and is_not_palindromic: 
+                if is_complementary and is_not_palindromic: 
                     map_color = parent_bond.color
                 # Neither satisfied
-                elif not is_complimentary and not is_not_palindromic:
+                elif not is_complementary and not is_not_palindromic:
                     map_color = -1*parent_bond.color
                 # Bad end: Only one or the other is satisfied
                 else: 
@@ -240,31 +240,35 @@ class BondPainter:
         """
         rotated_bond_dict = self.voxel_rotater.rotate_voxel_bonds(parent_voxel, sym_label)
         new_bond_dict = {}
-        for direction, parent_bond in rotated_bond_dict.items():
-            child_bond = child_voxel.get_bond(direction)
+        for rot_direction, rot_bond_color in rotated_bond_dict.items():
+
+            child_bond = child_voxel.get_bond(rot_direction)
             # Don't MapPaint onto already painted bonds
             if child_bond.color is not None:
+                continue
+            # Don't MapPaint a None color onto the child
+            if rot_bond_color is None:
                 continue
 
             # If child_bond's partner is uncolored, only check palindromic
             map_color = None
-            is_not_palindromic = not child_voxel.is_palindromic(parent_bond.color)
-            
+            is_not_palindromic = not child_voxel.is_palindromic(rot_bond_color)
             if child_bond.bond_partner.color is None:
                 if is_not_palindromic:
-                    map_color = parent_bond.color
+                    map_color = rot_bond_color
                 else:
-                    map_color = -1*parent_bond.color
+                    map_color = -1*rot_bond_color
 
             # If child_bond's partner is colored, check both palindromic and complementarity
             else:
-                is_complimentary = child_bond.bond_partner.color == -1*parent_bond.color
+                is_complementary = child_bond.bond_partner.color == -1*rot_bond_color
+                is_same_color = child_bond.bond_partner.color == rot_bond_color
                 # Both satisfied
-                if is_complimentary and is_not_palindromic: 
-                    map_color = parent_bond.color
+                if is_complementary and is_not_palindromic: 
+                    map_color = rot_bond_color
                 # Neither satisfied
-                elif not is_complimentary and not is_not_palindromic:
-                    map_color = -1*parent_bond.color
+                elif is_same_color and not is_not_palindromic:
+                    map_color = -1*rot_bond_color
                 # Bad end: Only one or the other is satisfied
                 else: 
                     # If only one of the conditions is satisfied, don't map paint
@@ -279,7 +283,7 @@ class BondPainter:
             # print(f'MapPaint {map_color} from parent voxel{parent_voxel.id} {parent_bond.get_label()} --> child voxel{child_voxel.id} {child_bond.get_label()} with type {child_bond_type}')
 
             # self.paint_bond(child_bond, map_color, child_bond_type)
-            new_bond_dict[direction] = (map_color, child_bond_type)
+            new_bond_dict[rot_direction] = (map_color, child_bond_type)
             # self.paint_bond(child_bond.bond_partner, -1*parent_bond.color, 'mapped')
             # print(f' ---> MapBond ({parent_bond.color}) from parent_bond {parent_bond.get_label()} --> child_bond {child_bond.get_label()}')
 
@@ -287,6 +291,9 @@ class BondPainter:
         for direction, (color, type) in new_bond_dict.items():
             child_voxel.bonds[direction].color = color
             child_voxel.bonds[direction].type = type
+            # partner_voxel, partner_bond = child_voxel.get_partner(direction)
+            # partner_bond.color = -1*color
+            # partner_bond.type = type
 
 
     def map_paint_lattice(self, parent_voxel: Voxel):
@@ -297,5 +304,5 @@ class BondPainter:
                 continue
             symlist = self.symmetry_df.symlist(parent_voxel.id, child_voxel.id)
             for sym_label in symlist:
-                self.map_paint(parent_voxel, child_voxel, sym_label)
+                self.map_paint2(parent_voxel, child_voxel, sym_label)
 

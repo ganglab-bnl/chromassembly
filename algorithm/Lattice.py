@@ -187,9 +187,11 @@ class Lattice:
                 # Add the bond color to the dictionary
                 color = abs(bond.color)
                 if color not in colordict:
+                    # print(f"Creating new color entry: {color}, voxel{voxel.id}")
                     colordict[color] = [voxel.id]
                 elif voxel.id not in colordict[color]:
                     colordict[color].append(voxel.id)
+                    # print(f"Adding voxel{voxel.id} to color {color}")
 
         # Sort the dictionary keys by ascending color
         colordict = {key: colordict[key] for key in sorted(colordict)}
