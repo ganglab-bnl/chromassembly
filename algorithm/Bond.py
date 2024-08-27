@@ -10,7 +10,6 @@ class Bond:
         -> Ex: 2=red, -2=red (complement)
     """
 
-    from .Voxel import Voxel
     def __init__(self, voxel: 'Voxel', direction: tuple[float, float, float], 
                  color: int=None, type: str=None, bond_partner: 'Bond'=None):
         """

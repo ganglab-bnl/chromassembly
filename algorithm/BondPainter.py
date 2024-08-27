@@ -139,6 +139,8 @@ class BondPainter:
                 self.map_paint_lattice(voxel1)
                 self.map_paint_lattice(voxel2)
 
+                # return
+
     def paint_bond(self, bond: Bond, color: int, type: str=None) -> None:
         """
         Paint the bond on a given vertex with a given color.
@@ -250,24 +252,33 @@ class BondPainter:
             if rot_bond_color is None:
                 continue
 
-            # If child_bond's partner is uncolored, only check palindromic
+            # If child_bond's partner is uncolored, only check palindromic on the child
             map_color = None
             is_not_palindromic = not child_voxel.is_palindromic(rot_bond_color)
+
+            partner_voxel, partner_bond = child_voxel.get_partner(rot_direction)
+            partner_is_not_palindromic = not partner_voxel.is_palindromic(-1*rot_bond_color)
+
             if child_bond.bond_partner.color is None:
-                if is_not_palindromic:
+                if is_not_palindromic and partner_is_not_palindromic:
                     map_color = rot_bond_color
-                else:
+                elif not is_not_palindromic and not partner_is_not_palindromic:
                     map_color = -1*rot_bond_color
+                else:
+                    return
 
             # If child_bond's partner is colored, check both palindromic and complementarity
             else:
                 is_complementary = child_bond.bond_partner.color == -1*rot_bond_color
                 is_same_color = child_bond.bond_partner.color == rot_bond_color
                 # Both satisfied
-                if is_complementary and is_not_palindromic: 
+                # Adding the color does NOT make both the child and its partner palindromic
+                # And satisfies complementarity
+                if is_complementary and is_not_palindromic and partner_is_not_palindromic: 
                     map_color = rot_bond_color
                 # Neither satisfied
-                elif is_same_color and not is_not_palindromic:
+                # Adding the color would make both the child and its partner palindromic
+                elif is_same_color and not is_not_palindromic and not partner_is_not_palindromic:
                     map_color = -1*rot_bond_color
                 # Bad end: Only one or the other is satisfied
                 else: 
@@ -278,7 +289,7 @@ class BondPainter:
             
             # Check if color-to-map already exists on the child_voxel
             child_bond_type = child_voxel.get_bond_type(map_color)
-            if child_bond_type is None:
+            if child_bond_type is None: # Color does not exist
                 child_bond_type = 'mapped'
             # print(f'MapPaint {map_color} from parent voxel{parent_voxel.id} {parent_bond.get_label()} --> child voxel{child_voxel.id} {child_bond.get_label()} with type {child_bond_type}')
 
@@ -291,9 +302,8 @@ class BondPainter:
         for direction, (color, type) in new_bond_dict.items():
             child_voxel.bonds[direction].color = color
             child_voxel.bonds[direction].type = type
-            # partner_voxel, partner_bond = child_voxel.get_partner(direction)
-            # partner_bond.color = -1*color
-            # partner_bond.type = type
+            partner_bond.color = -1*color
+            partner_bond.type = type
 
 
     def map_paint_lattice(self, parent_voxel: Voxel):
