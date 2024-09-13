@@ -74,15 +74,24 @@ class Voxel:
         voxel_partner = bond_partner.voxel
         return voxel_partner, bond_partner
     
-    def has_bond_partner_with(self, partner_voxel: 'Voxel'):
-        """If the voxel has a bond partner with the supplied Voxel object,
+    def has_bond_partner_with(self, partner_voxel) -> Bond:
+        """
+        If the voxel has a bond partner with the supplied Voxel object,
         return the current Voxel's bond object which has the partner with the
-        partner_voxel."""
+        partner_voxel.
+        
+        Args:
+            partner_voxel (int or Voxel): The other voxel/voxel_id to check if they are partners
+        """
 
+        partner_voxel_id = partner_voxel
+        if isinstance(partner_voxel, Voxel):
+            partner_voxel_id = partner_voxel.id
+        
         for bond in self.bonds.values():
             if bond.bond_partner is None:
                 continue
-            if bond.bond_partner.voxel == partner_voxel:
+            if bond.bond_partner.voxel.id == partner_voxel_id:
                 return bond
             
         return None
@@ -93,7 +102,7 @@ class Voxel:
         for direction, bond in self.bonds.items():
             print(f" -> {self.get_direction_label(direction)}: {bond.color}, {bond.type}")
     
-    def get_direction_label(self, direction):
+    def get_direction_label(self, direction) -> str:
         """
         Get the label of the direction (ex: '+x', '-y', etc.)
         """
@@ -108,7 +117,7 @@ class Voxel:
         Args:
             test_color (int): The color of the new bond we're considering to add
         """
-        if test_color is None:
+        if test_color is None or test_color == 0:
             return False
         
         for bond in self.bonds.values():
@@ -148,7 +157,7 @@ class Voxel:
 
         return True
     
-    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], int], comp_matters=True) -> bool:
+    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], tuple[int, str]], comp_matters=True) -> bool:
         """
         Check if the bonds of the Voxel are equal to the given bond_dict.
         A faster version of is_equal_to, without deepcopying.
@@ -156,7 +165,8 @@ class Voxel:
             bond_dict (dict): A dictionary where keys are the bond directions 
                               and values are the bond colors
         """
-        for direction, color in bond_dict.items():
+        for direction, color_type in bond_dict.items():
+            color = color_type[0]
             if not comp_matters:
                 new_color = abs(color)
                 old_color = abs(self.bonds[direction].color)
@@ -182,7 +192,6 @@ class Voxel:
     def flip_complementarity(self, color: int, flipped_voxels=None) -> dict[int, int]:
         """
         Flip the complementarity of the bonds with the given color.
-        
         Args:
             color (int): The abs(color) of the bonds to flip
         
@@ -214,8 +223,6 @@ class Voxel:
                     flipped_voxels = partner_voxel.flip_complementarity(color, flipped_voxels)
 
         return flipped_voxels
-
-
     
     def get_complementarity(self, color: int) -> int:
         """
@@ -230,6 +237,47 @@ class Voxel:
                 complementarity = bond.color // abs(bond.color)
                 return complementarity
         # return complementarity
+
+    def get_bonds_with_color(self, color: int) -> list[Bond]:
+        """
+        Get all bonds with the given color.
+        Args:
+            color (int): The color of the bonds to search for
+        Returns:
+            bonds (list): List of bonds with the given color
+        """
+        bonds = [bond for bond in self.bonds.values() if abs(bond.color) == abs(color)]
+        return bonds
+
+    # Methods written for binding_flexibility calculations
+    # -------------------------- #
+    def color_dict(self) -> dict[int, list[str]]:
+        """
+        Get a dictionary of bond colors and their directions.
+        """
+        color_dict = {}
+        for bond in self.bonds.values():
+            if bond.color not in color_dict:
+                color_dict[bond.color] = []
+            color_dict[bond.color].append(self.get_direction_label(bond.direction))
+        return color_dict
+    
+    def most_frequent_color(self) -> int:
+        """
+        Get the most frequent color of the bonds on the Voxel.
+        """
+        color_dict = self.color_dict()
+        max_color = max(color_dict, key=lambda x: len(color_dict[x]))
+        return max_color
+    
+    def get_partner_voxel(self, direction) -> 'Voxel':
+        """
+        Get the partner Voxel object in the supplied direction.
+        """
+        direction = self._handle_direction(direction)
+        return self.bonds[direction].bond_partner.voxel
+    # -------------------------- #
+    
 
     # --- Internal methods --- #
     def _handle_direction(self, direction):

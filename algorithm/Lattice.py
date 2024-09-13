@@ -108,7 +108,7 @@ class Lattice:
         voxel = self.voxel_list[voxel_index] # Omiting error handling because it's self explanatory
         return voxel
 
-    def final_df(self) -> pd.DataFrame:
+    def final_df(self, show_bond_type=False) -> pd.DataFrame:
         """
         Returns the final dataframe of the lattice.
         """
@@ -123,7 +123,8 @@ class Lattice:
                 ('Voxel', 'Coordinates'): voxel.coordinates
             }
             for direction, bond in voxel.bonds.items():
-                row[('Bond Colors', bond.get_label())] = bond.color
+                bond_label = bond.type if show_bond_type else bond.color
+                row[('Bond Colors', bond.get_label())] = bond_label
             final_df.append(row)
 
         # Create a DataFrame from the combined list
