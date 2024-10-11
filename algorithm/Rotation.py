@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import copy
+from dataclasses import dataclass, field
+from typing import Dict, Tuple
 
 from algorithm.Bond import Bond
 from algorithm.Voxel import Voxel
@@ -148,7 +150,49 @@ class ScipyRotationDict:
         # Sort the dictionary by key
         sorted_double_rotations = {key: double_rotations[key] for key in sorted(double_rotations)}
         return sorted_double_rotations
+
+
+# @dataclass
+# class BondDict:
+#     bonds: Dict[Tuple[int, int, int], Tuple[str, str]] = field(default_factory=dict)
     
+#     def add_bond(self, direction: Tuple[int, int, int], bond_info: Tuple[str, str]):
+#         """Add a bond to the bond_dict."""
+#         self.bonds[direction] = bond_info
+    
+#     def get_bond(self, direction: Tuple[int, int, int]) -> Tuple[str, str]:
+#         """Retrieve the bond information for a given direction."""
+#         return self.bonds.get(direction, (None, None))  # Default if direction not found
+
+class Rotater:
+    def __init__(self):
+        self.scirot_dict = ScipyRotationDict()
+
+    def rotate_voxel(self, voxel: Voxel, rot_label: str) -> dict[tuple[int, int, int], tuple[int, str]]:
+        """
+        Rotates a single voxel and returns a dictionary containing the rotated 
+        directions as keys and the corresponding bond colors as values.
+        
+        Args:
+            voxel (Voxel): The voxel to be rotated.
+            rot_label (str): The rotation label to be applied.
+            
+        Returns:
+            bond_dict (dict): A dictionary where keys are the rotated directions 
+                              and values are tuples of (bond colors, bond types).
+        """
+        rot = self.scirot_dict.get_rotation(rot_label)
+        
+        bond_dict = {}
+        for direction, bond in voxel.bonds.items():
+            # Rotate the direction vector of the bond
+            direction = np.array(direction)
+            rotated_direction = tuple(np.round(rot(direction)).astype(int))
+
+            # Store the color in the bond_dict with the rotated direction as the key
+            bond_dict[rotated_direction] = (bond.color, bond.type)
+        
+        return bond_dict
 
 class VoxelRotater:
     def __init__(self):
@@ -200,6 +244,8 @@ class VoxelRotater:
             bond_dict[rotated_direction] = (bond.color, bond.type)
         
         return bond_dict
+    
+    # def find_best_
 
     def find_best_rotation(self, parent_voxel: Voxel, child_voxel: Voxel, rotations_to_check=None):
         """

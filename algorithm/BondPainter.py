@@ -73,6 +73,7 @@ class BondPainter:
         self.init_mesopaint()
         print("Coloring the lattice...")
         self.main_loop()
+        self.lattice.n_colors = self.n_colors
         print("Done!")
     
     # --- Internal --- #
@@ -110,6 +111,9 @@ class BondPainter:
 
                     self.swap_paint_lattice(structural_voxel)
                     self.swap_paint_lattice(partner_voxel)
+
+                    self.map_paint_lattice(structural_voxel)
+                    self.map_paint_lattice(partner_voxel)
                     
                     painted_s_voxels.add(paint_set)
                     # print(f'Paint bond with color ({self.n_colors}):\nBetween voxel {structural_voxel.id} ({bond.direction}) and voxel {partner_voxel.id} ({partner_bond.direction})\n')
@@ -160,8 +164,8 @@ class BondPainter:
                 self.paint_self_symmetries(voxel2)
 
                 # # Swap paint the lattice
-                # self.swap_paint_lattice(voxel1)
-                # self.swap_paint_lattice(voxel2)
+                self.swap_paint_lattice(voxel1)
+                self.swap_paint_lattice(voxel2)
 
                 # Map paint the lattice with both voxels
                 self.map_paint_lattice(voxel1)
@@ -278,23 +282,31 @@ class BondPainter:
                 continue
 
             # if child is a direct partner of parent, flip complementarity when map_painting
-            # if parent_voxel.has_bond_partner_with(child_voxel.id) is not None:
-            #     all_parent_colors = set([bond.color for bond in parent_voxel.bonds.values()])
-            #     flipped_voxel = copy.deepcopy(parent_voxel)
-            #     # flipped_voxel.bonds = flipped_voxel.flip_complementarity(list(all_parent_colors))
-            #     parent_voxel = flipped_voxel
+            if parent_voxel.has_bond_partner_with(child_voxel.id) is not None:
+                flipped_voxel = copy.deepcopy(parent_voxel)
+                # flipped_voxel.bonds = flipped_voxel.flip_complementarity(list(all_parent_colors))
+                for _, bond in flipped_voxel.bonds.items():
+                    if bond.color is not None:
+                        bond.color = -1*bond.color
+                
+                for sym_label in symlist:
+                    self.map_paint(flipped_voxel, child_voxel, sym_label)
+            # normally just map paint dirrectly
+            else:
+                for sym_label in symlist:
+                    self.map_paint(parent_voxel, child_voxel, sym_label)
 
             # symlist = self.symmetry_df.symlist(parent_voxel.id, child_voxel.id)
 
             # we need to choose the best symmetry to map paint
-            for sym_label in symlist:
-                self.map_paint(parent_voxel, child_voxel, sym_label)
+            
 
     def swap_paint_lattice(self, parent_voxel: Voxel):
         for symvoxel_id in self.lattice.SymmetryDf.partner_symdict(parent_voxel.id):
+            # Swap painting constraints
             if parent_voxel.id == symvoxel_id:
-                continue
-            if parent_voxel.has_bond_partner_with(symvoxel_id):
+                continue # don't swap the parent with itself
+            if parent_voxel.has_bond_partner_with(symvoxel_id) is not None:
                 continue # don't swap paint direct partners of the parent
 
             symvoxel = self.lattice.get_voxel(symvoxel_id)
@@ -304,7 +316,7 @@ class BondPainter:
             if best_rot is None:
                 continue
 
-            #TODO: account for bond type
+            #TODO: Account for bond type
             rot_bond_dict = self.voxel_rotater.rotate_voxel_bonds(parent_voxel, best_rot)
             for direction, rot_bond_color_type in rot_bond_dict.items():
 

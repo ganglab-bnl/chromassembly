@@ -63,6 +63,29 @@ class BindingFlexibility:
                 
         return lattice
     
+    def binding_flexibility_2(self) -> Lattice:
+        return self.lattice
+    
+    def binding_flexibility_3(self, max_cutoff_ratio: float =3/6) -> Lattice:
+        lattice = deepcopy(self.lattice)
+        for voxel in lattice.voxel_list:
+            if self.cutoff_ratio(voxel) > max_cutoff_ratio:
+                for bond in voxel.bonds.values():
+                    if bond.type == "structural":
+                        bond.set_type("cutoff_ratio_change")
+                        lattice.n_colors += 1
+                        bond.set_color(lattice.n_colors)
+                        bond.bond_partner.set_color(-lattice.n_colors)
+        return lattice
+
+    def cutoff_ratio(self, voxel: Voxel) -> float:
+        """
+        Calculate the ratio of "structural" type bonds to total bonds on the voxel
+        """
+        total_bonds = len(voxel.bonds)
+        structural_bonds = len([bond for bond in voxel.bonds.values() if bond.type == "structural"])
+        return structural_bonds / total_bonds
+    
     def test_valid_paint(self, bond: Bond, color: int):
         is_not_palindromic = not bond.voxel.is_palindromic(color)
         partner_is_not_palindromic = not bond.bond_partner.voxel.is_palindromic(color)

@@ -68,6 +68,7 @@ class Lattice:
         self.SymmetryDf = None
         self.colordict = None
         self.default_color_config = {}
+        self.n_colors = 0
 
     # --- Public methods ---
     def compute_symmetries(self):
