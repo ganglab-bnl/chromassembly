@@ -1,4 +1,4 @@
-# DNA-origami
+# coloring-algorithm
 
 This algorithm utilizes the symmetry of a 'voxel' containing a particular cargo in 3D space, and combinatorically searches for the minimum number of unique DNA bonds or 'colors' needed to facilitate the self-assembly of such a particle design.
 
