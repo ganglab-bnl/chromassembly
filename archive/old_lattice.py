@@ -26,7 +26,7 @@ class Lattice:
             self.MinDesign = input_lattice
 
         self.VoxelDict = self.initVoxelDict(self.MinDesign)
-        self.voxel_list, self.coord_list = self.init_voxels(self.MinDesign)
+        self.voxels, self.coord_list = self.init_voxels(self.MinDesign)
     
 
     def initVoxelDict(self, MinDesign):
@@ -135,7 +135,7 @@ class Lattice:
                 partner_coords[dim_index] = coord - self.MinDesign.shape[dim_index]
 
         partner_voxel_index = self.coord_list.index(tuple(partner_coords))
-        partner_voxel = self.voxel_list[partner_voxel_index]
+        partner_voxel = self.voxels[partner_voxel_index]
 
         partner_direction = -np.array(direction) # Reverse direction to find partner vertex
         partner_vertex = partner_voxel.vertices[tuple(partner_direction)]

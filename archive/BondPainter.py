@@ -7,7 +7,7 @@ from .Voxel import Voxel
 from .Bond import Bond
 from .Lattice import Lattice
 from .Surroundings import Surroundings
-from .SymmetryDf import SymmetryDf
+from .symmetry_df import SymmetryDf
 from .RotationDict import VoxelRotater
 
 class Mesovoxel:
@@ -23,7 +23,7 @@ class Mesovoxel:
         Initialize a list of structural voxels.
         """
         structural_voxels = set()
-        for voxel in lattice.voxel_list:
+        for voxel in lattice.voxels:
             # Initialize set with the first voxel in the lattice.MinDesign
             if structural_voxels == []:
                 structural_voxels.add(voxel.id)
@@ -106,7 +106,7 @@ class BondPainter:
         My 2nd way of painting the mesovoxel :-)
         """
         print("\nMAIN LOOP 2\n---")
-        for voxel1 in self.lattice.voxel_list:
+        for voxel1 in self.lattice.voxels:
             # if voxel1.id == 1:
             #     return
             for direction in voxel1.vertex_directions:
@@ -137,7 +137,7 @@ class BondPainter:
         My way of painting the mesovoxel :-)
         """
         print("\nMAIN LOOP 2\n---")
-        for voxel1 in self.lattice.voxel_list:
+        for voxel1 in self.lattice.voxels:
             for direction in voxel1.vertex_directions:
                 bond1 = voxel1.get_bond(direction)
                 voxel2, bond2 = voxel1.get_partner(direction)
@@ -253,7 +253,7 @@ class BondPainter:
         print("\n")
 
         #TODO: Skip the voxel entirely if we reach the bad state
-        for direction, parent_bond in rotated_voxel.bonds.items():
+        for direction, parent_bond in rotated_voxel.bond_dict.dict.items():
 
             if parent_bond.color is None:
                 # print(f"    Parent bond {parent_bond.get_label()} is not painted, skipping")
@@ -289,10 +289,10 @@ class BondPainter:
 
             self.paint_bond(child_bond_copy, map_color, 'mapped')
             # self.paint_bond(child_bond.bond_partner, -1*parent_bond.color, 'mapped')
-            print(f' ---> MapBond ({parent_bond.color}) from parent_bond {parent_bond.get_label()} --> child_bond {child_bond_copy.get_label()}')
+            # print(f' ---> MapBond ({parent_bond.color}) from parent_bond {parent_bond.get_label()} --> child_bond {child_bond_copy.get_label()}')
 
         # If we never reached the bad end, set the child_voxel to the mapped copy
-        for direction, mapped_bond in child_voxel_copy.bonds.items():
+        for direction, mapped_bond in child_voxel_copy.bond_dict.dict.items():
             child_voxel.bonds[direction].color = mapped_bond.color
         print("\n")
 
@@ -312,7 +312,7 @@ class BondPainter:
     def map_paint_lattice(self, parent_voxel: Voxel):
         """For each other_voxel in the lattice that is not itself, map_paints 
         its symmetries (those valid symlist items) onto the other_voxel"""
-        for child_voxel in self.lattice.voxel_list:
+        for child_voxel in self.lattice.voxels:
             if parent_voxel.id == child_voxel.id:
                 continue
             symlist = self.symmetry_df.symlist(parent_voxel.id, child_voxel.id)
@@ -325,7 +325,7 @@ class BondPainter:
         Main loop to paint all bonds in the mesovoxel.
         """
         print("\nMAIN LOOP\n---")
-        for voxel1 in mesovoxel.lattice.voxel_list:
+        for voxel1 in mesovoxel.lattice.voxels:
 
             for direction in voxel1.vertex_directions:
                 # Note: Voxel1/bond1 is the outer loop, voxel2/bond2 is the inner loop
@@ -334,7 +334,7 @@ class BondPainter:
 
                 # Skip vertices with already painted bonds
                 if bond1.color is not None:
-                    print(f"Voxel {voxel1.id}'s {bond1.get_label()} bond already painted, skipping")
+                    # print(f"Voxel {voxel1.id}'s {bond1.get_label()} bond already painted, skipping")
                     continue
 
                 # --- Find the best map parent in the mesovoxel --- #

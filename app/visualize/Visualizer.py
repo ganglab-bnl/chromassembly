@@ -85,7 +85,7 @@ class Visualizer(QWidget):
         n_layers, n_rows, n_columns = lattice.MinDesign.shape
         self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
 
-        for voxel in lattice.voxel_list:
+        for voxel in lattice.voxels:
             # Create all bonds for the voxel
             # voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
             #     voxel.coordinates[0]*self.voxel_distance, 
@@ -96,7 +96,7 @@ class Visualizer(QWidget):
             #     self.view.addItem(shaft)
             #     self.view.addItem(arrow)
 
-            for _, bond in voxel.bonds.items():
+            for _, bond in voxel.bond_dict.dict.items():
                 shaft, arrow = Bond.create_bond(bond)
                 self.view.addItem(shaft)
 

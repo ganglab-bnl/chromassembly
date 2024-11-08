@@ -20,7 +20,7 @@ class BindingFlexibility:
         """
         # Create a new Lattice object with the same vertices
         lattice = deepcopy(self.lattice)
-        for voxel in lattice.voxel_list:
+        for voxel in lattice.voxels:
             sym_partners = self.get_sympartners(voxel)
             # if voxel.id == 5:
             #     return lattice
@@ -68,7 +68,7 @@ class BindingFlexibility:
     
     def binding_flexibility_3(self, max_cutoff_ratio: float =3/6) -> Lattice:
         lattice = deepcopy(self.lattice)
-        for voxel in lattice.voxel_list:
+        for voxel in lattice.voxels:
             if self.cutoff_ratio(voxel) > max_cutoff_ratio:
                 for bond in voxel.bonds.values():
                     if bond.type == "structural":
@@ -132,7 +132,7 @@ class BindingFlexibility:
                     if sym_voxel_id == partner_voxel_id:
                         continue
 
-                    symlist = self.lattice.SymmetryDf.symlist(sym_voxel_id, partner_voxel_id)
+                    symlist = self.lattice.symmetry_df.symlist(sym_voxel_id, partner_voxel_id)
 
                     # if voxel.id == 4:
                     #     print(f"Voxel {sym_voxel_id} and {partner_voxel_id} have symmetry: {symlist}")

@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 import copy
-from algorithm.Bond import BondDict, Bond
+from .Bond import Bond
 
 class Voxel:
     """
@@ -43,11 +43,10 @@ class Voxel:
             (0, 1, 0), (0, -1, 0),   # +-y
             (0, 0, 1), (0, 0, -1)    # +-z
         ]
-
-        # Initialize bonds with default values
-        self.bond_dict = BondDict({
+        # Initialize bond for each vertex
+        self.bonds = {
             direction: Bond(direction=direction, voxel=self) for direction in self.vertex_directions
-        })
+        }
 
     
     # --- Public methods --- #
@@ -55,10 +54,10 @@ class Voxel:
         """
         Get the bond in a given direction. Accepts '+x', '-y', etc. or 
         a tuple/np.array representing the vector direction of the bond wrt. the
-        Voxel @ (0, 0, 0). Wrapper around bond_dict version.
+        Voxel @ (0, 0, 0)
         """
-        direction = self._get_direction_tuple(direction)
-        return self.bond_dict.get_bond(direction)
+        direction = self._handle_direction(direction)
+        return self.bonds.get(direction)
     
     def get_partner(self, direction) -> tuple['Voxel', Bond]:
         """
@@ -75,32 +74,12 @@ class Voxel:
         voxel_partner = bond_partner.voxel
         return voxel_partner, bond_partner
     
-    def get_all_partner_voxels(self) -> list[int]:
-        """Return a list of all ids of voxels we are partners with."""
-        partner_voxels = []
-        for direction, bond in self.bond_dict.dict.items():
-            partner_voxel_id = bond.bond_partner.voxel.id
-            partner_voxels.append(partner_voxel_id)
-        return partner_voxels
-    
-    def load_bonds(self, bond_dict: BondDict) -> None:
-        """
-        Loads bonds from another BondDict into the current, only copying
-        over the colors/types of the other into the corresponding directions of
-        the current BondDict instance.
-
-        Used in map painting procedures.
-
-        Args:
-            bond_dict (BondDict): Another BondDict instance whose bond 
-                                  color/types will be copied over.
-        """
-        for direction, bond2 in bond_dict.dict.items():
-            bond1 = self.get_bond(direction) # Get Bond on current BondDict
-
-            # Replace color/type attributes with those on the other Bond
-            bond1.set_color(bond2.color) 
-            bond1.set_type(bond2.type)
+    def get_bond_dict(self) -> dict[tuple[int, int, int], tuple[int, str]]:
+        """Returns the voxel's bond_dict as {direction: (color, type)}"""
+        bond_dict = {
+            direction: (bond.color, bond.type) for direction, bond in self.bonds
+        }
+        return bond_dict
     
     def has_bond_partner_with(self, partner_voxel) -> Bond:
         """
@@ -110,16 +89,13 @@ class Voxel:
         
         Args:
             partner_voxel (int or Voxel): The other voxel/voxel_id to check if they are partners
-        
-        Returns:
-            bond (Bond): Bond object on the current voxel which connects it to partner_voxel
         """
 
         partner_voxel_id = partner_voxel
         if isinstance(partner_voxel, Voxel):
             partner_voxel_id = partner_voxel.id
         
-        for bond in self.bond_dict.dict.values():
+        for bond in self.bonds.values():
             if bond.bond_partner is None:
                 continue
             if bond.bond_partner.voxel.id == partner_voxel_id:
@@ -127,6 +103,19 @@ class Voxel:
             
         return None
     
+    def print_bonds(self) -> None:
+        """Print all bonds of the Voxel."""
+        print(f"Voxel {self.id} ({self.material}):\n---")
+        for direction, bond in self.bonds.items():
+            print(f" -> {self.get_direction_label(direction)}: {bond.color}, {bond.type}")
+    
+    def get_direction_label(self, direction) -> str:
+        """
+        Get the label of the direction (ex: '+x', '-y', etc.)
+        """
+        direction = self._handle_direction(direction)
+        direction_index = self.vertex_directions.index(direction)
+        return self.vertex_names[direction_index]
     
     def is_palindromic(self, test_color: int) -> bool:
         """
@@ -138,7 +127,7 @@ class Voxel:
         if test_color is None or test_color == 0:
             return False
         
-        for bond in self.bond_dict.dict.values():
+        for bond in self.bonds.values():
             if bond.color == -1*test_color:
                 return True
         return False
@@ -158,6 +147,44 @@ class Voxel:
                 return bond.type
         return None
     
+    def is_equal_to(self, voxel2: 'Voxel') -> bool:
+        """
+        Check if two voxels are equal based on the colors of their bonds
+        in the corresponding directions, and of course the material cargo.
+
+        Args:
+            voxel2 (Voxel): The second voxel to compare with
+        """
+        if self.material != voxel2.material:
+            return False
+
+        for direction in self.vertex_directions:
+            if self.bonds[direction].color != voxel2.bonds[direction].color:
+                return False
+
+        return True
+    
+    def is_bond_equal_to(self, bond_dict: dict[tuple[int, int, int], tuple[int, str]], comp_matters=True) -> bool:
+        """
+        Check if the bonds of the Voxel are equal to the given bond_dict.
+        A faster version of is_equal_to, without deepcopying.
+        Args:
+            bond_dict (dict): A dictionary where keys are the bond directions 
+                              and values are the bond colors
+        """
+        for direction, color_type in bond_dict.items():
+            color = color_type[0]
+            if not comp_matters:
+                new_color = abs(color)
+                old_color = abs(self.bonds[direction].color)
+            else:
+                new_color = color
+                old_color = self.bonds[direction].color
+
+            if old_color != new_color:
+                return False
+            
+        return True
     
     def repaint_complement(self, color: int, complement: int) -> None:
         """
@@ -216,10 +243,18 @@ class Voxel:
             if abs(bond.color) == abs(color):
                 complementarity = bond.color // abs(bond.color)
                 return complementarity
-        
-        # Else, means we didn't find bonds of the color on the Voxel
-        raise ValueError(f"No bonds of color {color} exist on voxel {self.id}.")
+        # return complementarity
 
+    def get_bonds_with_color(self, color: int) -> list[Bond]:
+        """
+        Get all bonds with the given color.
+        Args:
+            color (int): The color of the bonds to search for
+        Returns:
+            bonds (list): List of bonds with the given color
+        """
+        bonds = [bond for bond in self.bonds.values() if abs(bond.color) == abs(color)]
+        return bonds
 
     # Methods written for binding_flexibility calculations
     # -------------------------- #
@@ -231,7 +266,7 @@ class Voxel:
         for bond in self.bonds.values():
             if bond.color not in color_dict:
                 color_dict[bond.color] = []
-            color_dict[bond.color].append(self._get_direction_label(bond.direction))
+            color_dict[bond.color].append(self.get_direction_label(bond.direction))
         return color_dict
     
     def most_frequent_color(self) -> int:
@@ -246,27 +281,13 @@ class Voxel:
         """
         Get the partner Voxel object in the supplied direction.
         """
-        direction = self._get_direction_tuple(direction)
+        direction = self._handle_direction(direction)
         return self.bonds[direction].bond_partner.voxel
     # -------------------------- #
-
-    # --- Print method --- #
-    def print_bonds(self) -> None:
-        """Print all bonds of the Voxel."""
-        print(f"Voxel {self.id} ({self.material}):\n---")
-        for direction, bond in self.bonds.items():
-            print(f" -> {self._get_direction_label(direction)}: {bond.color}, {bond.type}")
+    
 
     # --- Internal methods --- #
-    def _get_direction_label(self, direction) -> str:
-        """
-        Get the label of the direction (ex: '+x', '-y', etc.)
-        """
-        direction = self._get_direction_tuple(direction)
-        direction_index = self.vertex_directions.index(direction)
-        return self.vertex_names[direction_index]
-        
-    def _get_direction_tuple(self, direction):
+    def _handle_direction(self, direction):
         """
         Formats any kind of 'direction' input into a tuple.
         Handles:

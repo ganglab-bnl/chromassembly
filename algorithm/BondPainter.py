@@ -7,7 +7,7 @@ from .Voxel import Voxel
 from .Bond import Bond
 from .Lattice import Lattice
 from .Surroundings import Surroundings
-from .SymmetryDf import SymmetryDf
+from .symmetry_df import SymmetryDf
 from .Rotation import VoxelRotater
 
 class Mesovoxel:
@@ -15,7 +15,7 @@ class Mesovoxel:
         """
         Mesovoxel to manipulate a set of structural / complementary voxels as we paint.
         """
-        self.structural_voxels = self.init_structural_voxels(lattice, lattice.SymmetryDf)
+        self.structural_voxels = self.init_structural_voxels(lattice, lattice.symmetry_df)
         self.complementary_voxels: Set[int] = set()
 
     def init_structural_voxels(self, lattice: Lattice, symmetry_df: SymmetryDf) -> set[int]:
@@ -23,7 +23,7 @@ class Mesovoxel:
         Initialize a list of structural voxels.
         """
         structural_voxels = set()
-        for voxel in lattice.voxel_list:
+        for voxel in lattice.voxels:
             # Initialize set with the first voxel in the lattice.MinDesign
             if structural_voxels == []:
                 structural_voxels.add(voxel.id)
@@ -61,7 +61,7 @@ class BondPainter:
         Manager class for coloring bonds between voxels in a lattice.
         """
         self.lattice = lattice
-        self.symmetry_df = lattice.SymmetryDf
+        self.symmetry_df = lattice.symmetry_df
         self.voxel_rotater = VoxelRotater()
         self.mesovoxel = Mesovoxel(lattice)
 
@@ -143,7 +143,7 @@ class BondPainter:
         2. Paint self-symmetries for both voxels
         3. Map paint the lattice with both voxels
         """
-        for voxel1 in self.lattice.voxel_list:
+        for voxel1 in self.lattice.voxels:
             # if voxel1.id == 1:
             #     return
             for direction in voxel1.vertex_directions:
@@ -276,7 +276,7 @@ class BondPainter:
     def map_paint_lattice(self, parent_voxel: Voxel):
         """For each other_voxel in the lattice that is not itself, map_paints 
         its symmetries (those valid symlist items) onto the other_voxel"""
-        for child_voxel_id, symlist in self.lattice.SymmetryDf.partner_symdict(parent_voxel.id).items():
+        for child_voxel_id, symlist in self.lattice.symmetry_df.partner_symdict(parent_voxel.id).items():
             child_voxel = self.lattice.get_voxel(child_voxel_id)
             if parent_voxel.id == child_voxel.id:
                 continue
@@ -302,7 +302,7 @@ class BondPainter:
             
 
     def swap_paint_lattice(self, parent_voxel: Voxel):
-        for symvoxel_id in self.lattice.SymmetryDf.partner_symdict(parent_voxel.id):
+        for symvoxel_id in self.lattice.symmetry_df.partner_symdict(parent_voxel.id):
             # Swap painting constraints
             if parent_voxel.id == symvoxel_id:
                 continue # don't swap the parent with itself

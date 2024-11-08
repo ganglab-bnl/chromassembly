@@ -14,9 +14,10 @@ import pandas as pd
 from collections import defaultdict
 import itertools
 import copy
-from .Voxel import Voxel
-from .Bond import Bond
-from .Rotation import VoxelRotater
+from algorithm.Voxel import Voxel
+from algorithm.Bond import Bond, BondDict
+from algorithm.Rotation import Rotater
+from algorithm.Relation import Relation
 
 class Lattice:
     """
@@ -59,13 +60,13 @@ class Lattice:
             self.UnitCell = np.pad(input_lattice, ((0, 1), (0, 1), (0, 1)), 'wrap') # Repeat layers
             self.MinDesign = input_lattice
 
-        self.voxel_list, self.coord_list = self._init_voxels(self.MinDesign)
+        self.voxels, self.coord_list = self._init_voxels(self.MinDesign)
         self._fill_partners()
 
         # Algorithm data structures
-        self.VoxelRotater = VoxelRotater()
+        # self.rotater = Rotater()
         self.Surroundings = None
-        self.SymmetryDf = None
+        self.symmetry_df = None
         self.colordict = None
         self.default_color_config = {}
         self.n_colors = 0
@@ -74,7 +75,7 @@ class Lattice:
     def compute_symmetries(self):
         """
         Compute all symmetries for the Lattice and fill the SymmetryDf.
-        Fills in self.Surroundings, which is needed to fill self.SymmetryDf in place.
+        Fills in self.Surroundings, which is needed to fill self.symmetry_df in place.
         """
         from .Surroundings import Surroundings
         from .SymmetryDf import SymmetryDf
@@ -83,7 +84,7 @@ class Lattice:
         # computes all symmetries in place and fills a dataframe, 'SymmetryDf'
         # with all possible voxel pairs and their symmetries
         self.Surroundings = Surroundings(self)
-        self.SymmetryDf = SymmetryDf(self)
+        self.symmetry_df = SymmetryDf(self)
 
     def get_voxel(self, id) -> Voxel:
         """
@@ -106,7 +107,7 @@ class Lattice:
             # Case 4: Invalid type
             raise ValueError(f"Invalid id type: {type(id)}")
 
-        voxel = self.voxel_list[voxel_index] # Omiting error handling because it's self explanatory
+        voxel = self.voxels[voxel_index] # Omiting error handling because it's self explanatory
         return voxel
 
     def final_df(self, show_bond_type=False) -> pd.DataFrame:
@@ -117,13 +118,13 @@ class Lattice:
         final_df = []
 
         # Iterate through the voxels and bonds
-        for voxel in self.voxel_list:
+        for voxel in self.voxels:
             row = {
                 ('Voxel', 'ID'): voxel.id,
                 ('Voxel', 'Material'): voxel.material,
                 ('Voxel', 'Coordinates'): voxel.coordinates
             }
-            for direction, bond in voxel.bonds.items():
+            for direction, bond in voxel.bond_dict.dict.items():
                 bond_label = bond.type if show_bond_type else bond.color
                 row[('Bond Colors', bond.get_label())] = bond_label
             final_df.append(row)
@@ -136,15 +137,16 @@ class Lattice:
 
         return final_df
     
+
     def unique_origami(self) -> list[int]:
         """
         Returns a list of unique origami (Voxel+Bonds) in the lattice.
         """
-        if self.SymmetryDf is None:
+        if self.symmetry_df is None:
             raise ValueError("SymmetryDf not computed yet. Run Lattice.compute_symmetries() first.")
         
         unique_origami = []
-        for voxel1 in self.voxel_list:
+        for voxel1 in self.voxels:
 
             if unique_origami == []:
                 unique_origami.append(voxel1.id)
@@ -152,17 +154,14 @@ class Lattice:
 
             is_unique = True
             for voxel2_id in unique_origami:
-
                 voxel2 = self.get_voxel(voxel2_id)
                 # Origami can only be non-unique if they share some symmetry
-                symlist = self.SymmetryDf.symlist(voxel1.id, voxel2.id)
-                if symlist == []:
+                symlist = self.symmetry_df.symlist(voxel1.id, voxel2.id)
+                if symlist == [] or symlist is None:
                     continue
 
                 for sym_label in symlist:
-                    rot_voxel_bonds = self.VoxelRotater.rotate_voxel_bonds(voxel1, sym_label)
-                    # Check the color of each bond in the rotated voxel
-                    if voxel2.is_bond_equal_to(rot_voxel_bonds):
+                    if Relation.get_voxel_relation(voxel1, voxel2, sym_label) == "equal":
                         is_unique = False
                         break
 
@@ -181,7 +180,7 @@ class Lattice:
         Voxel IDs which contain that color (both color / complement).
         """
         colordict = {}
-        for voxel in self.voxel_list:
+        for voxel in self.voxels:
             for bond in voxel.bonds.values():
                 # Don't initialize colordict if not all bonds are colored
                 if bond.color is None:
@@ -357,7 +356,7 @@ class Lattice:
     
     def _fill_partners(self):
         """Fill all bond partners on all voxels in voxel_list in place."""
-        for voxel in self.voxel_list:
+        for voxel in self.voxels:
             for direction in voxel.vertex_directions:
                 voxel_bond = voxel.get_bond(direction)
                 # Skip if bond already has a partner
