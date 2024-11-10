@@ -11,6 +11,7 @@ from .Voxel import Voxel
 from .Bond import Bond
 from .ColorDict import ColorDict
 from algorithm.lattice.Lattice import Lattice
+from algorithm.painting.Painter import Painter
 
 class Visualizer(QWidget):
     def __init__(self):
@@ -77,6 +78,11 @@ class Visualizer(QWidget):
 
     def create_lattice(self, lattice: Lattice):
         """Create lattice from Lattice object"""
+        # Compute the painting algorithm
+        lattice.compute_symmetries()
+        self.painter = Painter(lattice)
+        self.painter.paint_lattice()
+
         # Delete the current lattice
         self.view.items = []
 
@@ -86,15 +92,6 @@ class Visualizer(QWidget):
         self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
 
         for voxel in lattice.voxels:
-            # Create all bonds for the voxel
-            # voxel_shafts, voxel_arrows = Bond.create_voxel_bonds(
-            #     voxel.coordinates[0]*self.voxel_distance, 
-            #     voxel.coordinates[1]*self.voxel_distance, 
-            #     voxel.coordinates[2]*self.voxel_distance
-            # )
-            # for shaft, arrow in zip(voxel_shafts, voxel_arrows):
-            #     self.view.addItem(shaft)
-            #     self.view.addItem(arrow)
 
             for _, bond in voxel.bond_dict.dict.items():
                 shaft, arrow = Bond.create_bond(bond)
