@@ -10,19 +10,31 @@ from copy import deepcopy
 class BindingFlexibility:
 
     def __init__(self, lattice: Lattice):
+        """
+        Initializes a BindingFlexibility instance ontop of a given (painted) lattice.
+
+        Running BF.binding_flexibility1, 2, or 3 will return a NEW lattice instance
+        colored with the given flexibility.
+        """
         self.lattice = lattice
 
     def binding_flexibility_1(self) -> Lattice:
         """
         Create a new Lattice object where all bonds to voxels in the same
-        automorphism group are repainted to be the same color.
+        automorphism equivalence class are repainted to be the same color.
+
+        Eg, repaint all bonds between all voxels with some symmetry between them 
+        to be the same color.
+
+        Returns:
+            lattice: A Lattice colored with BF1
         """
         # Create a new Lattice object with the same vertices
         lattice = deepcopy(self.lattice)
         for voxel in lattice.voxels:
+
             sym_partners = self.get_sympartners(voxel)
-            # if voxel.id == 5:
-            #     return lattice
+            
             for sym_group in sym_partners:
                 color_dict = {}
                 for direction in sym_group:
@@ -46,32 +58,41 @@ class BindingFlexibility:
                             bond = voxel.get_bond(direction)
                             
                             # Check if the bond can be repainted
-                            # valid_color = self.test_valid_paint(bond, max_color)
                             voxel.get_bond(direction).set_color(max_color)
                             voxel.get_bond(direction).bond_partner.set_color(-max_color)
-                            # return lattice
-                            # bond_complementarity = bond.color // abs(bond.color)
-                            # bond_color = abs(max_color) * bond_complementarity
-
-                            # bonds_to_change = voxel.get_bonds_with_color(-bond_color)
-                            # bonds_to_change.append(bond)
-
-                            # for bond in bonds_to_change:
-                            #     bond.set_color(bond_color)
-                            #     bond.bond_partner.set_color(-bond_color)
                 
         return lattice
     
     def binding_flexibility_2(self) -> Lattice:
+        """
+        Binding flexibility 2 is the same as the original lattice. No change.
+        """
         return self.lattice
     
     def binding_flexibility_3(self, max_cutoff_ratio: float =3/6) -> Lattice:
+        """
+        Binding flexibility 3 "adds information" to the painting result by
+        introducing a maximum cutoff ratio (structural bonds / total bonds) per voxel.
+
+        For all voxels in the lattice with a cutoff ratio higher than the maximum, we 
+        repaint a NEW color ontop of a structural bond on that voxel to lower the ratio to
+        satisfy the constraint.
+
+        This ratio is motivated by the observation that having more structural bonds
+        on the same voxel makes it more likely to erroneously bind in ways we don't want.
+
+        Args:
+            max_cutoff_ratio: The maximum cutoff ratio a given voxel can have
+
+        Returns:
+            lattice: New Lattice object recolored with BF3
+        """
         lattice = deepcopy(self.lattice)
 
         for voxel in lattice.voxels:
             # Check if the voxel's cutoff ratio is greater than our desired max
             if self.cutoff_ratio(voxel) > max_cutoff_ratio:
-                for bond in voxel.bonds.values():
+                for bond in voxel.bond_dict.dict.values():
                     if bond.type == "structural":
                         bond.set_type("cutoff_ratio_change")
                         lattice.n_colors += 1
@@ -83,8 +104,8 @@ class BindingFlexibility:
         """
         Calculate the ratio of "structural" type bonds to total bonds on the voxel
         """
-        total_bonds = len(voxel.bonds)
-        structural_bonds = len([bond for bond in voxel.bonds.values() if bond.type == "structural"])
+        total_bonds = len(voxel.bond_dict.dict)
+        structural_bonds = len([bond for bond in voxel.bond_dict.dict.values() if bond.type == "structural"])
         return structural_bonds / total_bonds
     
     def test_valid_paint(self, bond: Bond, color: int):
@@ -93,18 +114,22 @@ class BindingFlexibility:
 
         is_complementary = bond.bond_partner.color == -1*color
         is_same_color = bond.bond_partner.color == color
+
         # Both satisfied
         # Adding the color does NOT make both the child and its partner palindromic
         # And satisfies complementarity
         if is_complementary and is_not_palindromic and partner_is_not_palindromic: 
             valid_color = color
+
         # Neither satisfied
         # Adding the color would make both the child and its partner palindromic
         elif is_same_color and not is_not_palindromic and not partner_is_not_palindromic:
             valid_color = -1*color
+
         else:
             print("uh oh...")
             valid_color = 0
+
         # Bad end: Only one or the other is satisfied
         return valid_color
 
@@ -120,7 +145,7 @@ class BindingFlexibility:
         sym_partners = []
 
         # Iterate over each bond to create sets of partner voxels
-        for _, bond in voxel.bonds.items():
+        for _, bond in voxel.bond_dict.dict.items():
             partner_voxel = bond.get_partner_voxel()
             partner_voxel_id = partner_voxel.id
             added_to_group = False
