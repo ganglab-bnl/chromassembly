@@ -1,7 +1,6 @@
 import numpy as np
 import logging
-import copy
-from algorithm.Bond import BondDict, Bond
+from algorithm.lattice.Bond import BondDict, Bond
 
 class Voxel:
     """

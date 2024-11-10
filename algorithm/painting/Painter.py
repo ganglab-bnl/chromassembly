@@ -1,15 +1,14 @@
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond
-from algorithm.Lattice import Lattice
-from algorithm.Relation import Relation
-from algorithm.Mesovoxel import Mesovoxel, MVoxel
-from algorithm.Rotation import Rotater
-
 from typing import Set
+
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Bond import Bond
+from algorithm.lattice.Lattice import Lattice
+from algorithm.symmetry.Rotation import Rotater
+from algorithm.painting.Mesovoxel import Mesovoxel, MVoxel
 
 
 class Painter:
-    def __init__(self, lattice: Lattice):
+    def __init__(self, lattice: Lattice, verbose=False):
         """
         The idea is to create a coloring scheme for the lattice which minimizes 
         the total number of unique origami and number of colors.
@@ -38,6 +37,12 @@ class Painter:
         # Rotater instance (used for map painting)
         self.rotater = Rotater()
 
+        self.verbose: bool = verbose # If true, prints debugging statements
+
+    def paint_lattice(self):
+        """Final callable method to paint the lattice."""
+        self.str_paint_lattice()
+        self.comp_paint_lattice()
 
     def str_paint_lattice(self):
         """
@@ -66,7 +71,9 @@ class Painter:
                 self.paint_bond(partner_bond, -1*self.n_colors, 'structural')
 
                 self.painted_voxels.update((s_voxel_id, partner_voxel.id))
-                print(f"Paint new s_bond ({self.n_colors}):\nBetween voxel {s_voxel_id} ({bond.direction}) and voxel {partner_voxel.id} ({partner_bond.direction})\n")
+
+                if self.verbose:
+                    print(f"Paint new s_bond ({self.n_colors}):\nBetween voxel {s_voxel_id} ({bond.direction}) and voxel {partner_voxel.id} ({partner_bond.direction})\n")
 
                 # Iterative self symmetry painting
                 while self.painted_voxels:
@@ -95,7 +102,9 @@ class Painter:
 
                 self.painted_voxels.update((voxel1.id, voxel2.id))
                 self.meso_candidates.update((voxel1.id, voxel2.id))
-                print(f"Paint new c_bond ({self.n_colors}):\nBetween voxel {voxel1.id} ({bond.direction}) and voxel {voxel2.id} ({bond2.direction})\n")
+
+                if self.verbose:
+                    print(f"Paint new c_bond ({self.n_colors}):\nBetween voxel {voxel1.id} ({bond.direction}) and voxel {voxel2.id} ({bond2.direction})\n")
 
                 while True:
                     # Iterative self symmetry painting ("adding info")
@@ -121,12 +130,17 @@ class Painter:
                         # and the negation parent has a mesopartner - we know the partner must be the
                         # mesopartner (bottom double-oreo problem)
                         if mp.mesopartner is not None and with_negation:
-                            print("Taking the mesoPARTNER as the mesoparent instead...")
+
+                            if self.verbose:
+                                print("Taking the mesoPARTNER as the mesoparent instead...")
+
                             mp = mp.mesopartner
                             with_negation = False
                         
                         mp_voxel = mp.repr_voxel()
-                        print(f"\n--- Found mesoparent {mp_voxel.id} for voxel {voxel_id}, with_negation={with_negation} ---\n")
+
+                        if self.verbose:
+                            print(f"\n--- Found mesoparent {mp_voxel.id} for voxel {voxel_id}, with_negation={with_negation} ---\n")
 
                         symlist = self.lattice.symmetry_df.symlist(voxel.id, mp_voxel.id)
                         sym_label = symlist[0]
@@ -136,14 +150,18 @@ class Painter:
                         
                         # Update the rest of equivalent voxels in Mesoparent's maplist with new info
                         # Also returns set of painted voxels to update
-                        print(f"Updating voxel information for voxel {mp_voxel.id}'s maplist")
+                        if self.verbose:
+                            print(f"Updating voxel information for voxel {mp_voxel.id}'s maplist")
                         pv = mp.update_voxels(voxel, with_negation)
 
                         # Also update the mesopartner's voxels
                         if mp.mesopartner is not None:
 
                             mp_partner_voxel = mp.repr_voxel()
-                            print(f"Also updating voxel information for MESOPARTNER voxel {mp_partner_voxel.id}'s maplist")
+
+                            if self.verbose:
+                                print(f"Also updating voxel information for MESOPARTNER voxel {mp_partner_voxel.id}'s maplist")
+
                             with_negation2 = not with_negation
                             pv2 = mp.mesopartner.update_voxels(voxel, with_negation2)
                             pv.update(pv2)
@@ -157,7 +175,10 @@ class Painter:
                             continue
 
                         if not with_negation:
-                            print(f"Adding voxel {voxel.id} to MP voxel {mp_voxel.id}'s maplist {mp.maplist}")
+
+                            if self.verbose:
+                                print(f"Adding voxel {voxel.id} to MP voxel {mp_voxel.id}'s maplist {mp.maplist}")
+
                             mp.maplist.add(voxel.id)
                             self.mesovoxel.voxels[voxel.id] = mp.id
 
@@ -173,7 +194,9 @@ class Painter:
                             self.mesovoxel.mvoxels.append(mvoxel)
                             self.mesovoxel.voxels[voxel_id] = mvoxel.id
                             mp.set_mesopartner(mvoxel)
-                            print(f"--- Adding NEW c_voxel to mesovoxel: {mvoxel} ---\n")
+
+                            if self.verbose:
+                                print(f"--- Adding NEW c_voxel to mesovoxel: {mvoxel} ---\n")
                             
 
                     if len(self.painted_voxels) == 0:
@@ -189,7 +212,8 @@ class Painter:
             color (int): What color to paint it
             type (str): Either "complementary" or "structural" depending on type of bond to paint
         """
-        print(f"\t ---> painting {color} onto voxel {bond.voxel.id}'s bond {bond.get_label()} with type {type} ")
+        if self.verbose:
+            print(f"\t ---> painting {color} onto voxel {bond.voxel.id}'s bond {bond.get_label()} with type {type} ")
         bond.set_color(color)
         bond.set_type(type)
 

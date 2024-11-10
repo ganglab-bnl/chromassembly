@@ -1,11 +1,8 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import copy
-from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
-from algorithm.Bond import Bond, BondDict
-from algorithm.Voxel import Voxel
+from algorithm.lattice.Bond import Bond, BondDict
+from algorithm.lattice.Voxel import Voxel
 
 class NpRotationDict:
     """

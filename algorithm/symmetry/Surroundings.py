@@ -1,7 +1,7 @@
 from math import ceil, floor
 import numpy as np
-from .Voxel import Voxel
-from .Lattice import Lattice
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Lattice import Lattice
 
 
 class Surroundings:

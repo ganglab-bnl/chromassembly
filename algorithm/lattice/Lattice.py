@@ -11,13 +11,10 @@ Instances of this class are the direct input to the Visualizer GUI.
 
 import numpy as np
 import pandas as pd
-from collections import defaultdict
-import itertools
-import copy
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond, BondDict
-from algorithm.Rotation import Rotater
-from algorithm.Relation import Relation
+
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Bond import Bond
+from algorithm.symmetry.Relation import Relation
 
 class Lattice:
     """
@@ -77,8 +74,8 @@ class Lattice:
         Compute all symmetries for the Lattice and fill the SymmetryDf.
         Fills in self.Surroundings, which is needed to fill self.symmetry_df in place.
         """
-        from .Surroundings import Surroundings
-        from .SymmetryDf import SymmetryDf
+        from algorithm.symmetry.Surroundings import Surroundings
+        from algorithm.symmetry.SymmetryDf import SymmetryDf
 
         # Initializing Surroundings + SymmetryDf (order matters)
         # computes all symmetries in place and fills a dataframe, 'SymmetryDf'
@@ -124,7 +121,7 @@ class Lattice:
                 ('Voxel', 'Material'): voxel.material,
                 ('Voxel', 'Coordinates'): voxel.coordinates
             }
-            for direction, bond in voxel.bond_dict.dict.items():
+            for _, bond in voxel.bond_dict.dict.items():
                 bond_label = bond.type if show_bond_type else bond.color
                 row[('Bond Colors', bond.get_label())] = bond_label
             final_df.append(row)
@@ -132,7 +129,7 @@ class Lattice:
         # Create a DataFrame from the combined list
         final_df = pd.DataFrame(final_df)
 
-        # Convert the columns to a MultiIndex
+        # Convert the voxels / bonds into nested columns format
         final_df.columns = pd.MultiIndex.from_tuples(final_df.columns)
 
         return final_df
@@ -145,141 +142,20 @@ class Lattice:
         if self.symmetry_df is None:
             raise ValueError("SymmetryDf not computed yet. Run Lattice.compute_symmetries() first.")
         
-        unique_origami = []
+        unique_origami = [self.voxels[0].id]  # Initialize with the first voxel's ID in lattice
+
         for voxel1 in self.voxels:
-
-            if unique_origami == []:
-                unique_origami.append(voxel1.id)
-                continue
-
-            is_unique = True
-            for voxel2_id in unique_origami:
-                voxel2 = self.get_voxel(voxel2_id)
-                # Origami can only be non-unique if they share some symmetry
-                symlist = self.symmetry_df.symlist(voxel1.id, voxel2.id)
-                if symlist == [] or symlist is None:
-                    continue
-
-                for sym_label in symlist:
-                    if Relation.get_voxel_relation(voxel1, voxel2, sym_label) == "equal":
-                        is_unique = False
-                        break
-
-                if not is_unique:
-                    break
-
-            if is_unique:
-                unique_origami.append(voxel1.id)
+            if all(         # If for all voxel2's in unique_origami
+                not any(    # voxel1 and voxel2 don't satisfy "equal" relation
+                    Relation.get_voxel_relation(voxel1, self.get_voxel(voxel2_id), sym_label) == "equal"
+                    for sym_label in self.symmetry_df.symlist(voxel1.id, voxel2_id) or [] 
+                ) # ^^ for any given rotation under which they could be equal
+                for voxel2_id in unique_origami
+            ):
+                unique_origami.append(voxel1.id) # then voxel1 is unique
 
         return unique_origami
-    
-    
-    def init_colordict(self) -> dict[int, list[int]]:
-        """
-        Get dictionary of all colors in the lattice and a list of their corresponding
-        Voxel IDs which contain that color (both color / complement).
-        """
-        colordict = {}
-        for voxel in self.voxels:
-            for bond in voxel.bonds.values():
-                # Don't initialize colordict if not all bonds are colored
-                if bond.color is None:
-                    raise ValueError(f"Missing colors: Uncolored bond {bond.get_label} on voxel{voxel.id}")
-                # Add the bond color to the dictionary
-                color = abs(bond.color)
-                if color not in colordict:
-                    # print(f"Creating new color entry: {color}, voxel{voxel.id}")
-                    colordict[color] = [voxel.id]
-                elif voxel.id not in colordict[color]:
-                    colordict[color].append(voxel.id)
-                    # print(f"Adding voxel{voxel.id} to color {color}")
 
-        # Sort the dictionary keys by ascending color
-        colordict = {key: colordict[key] for key in sorted(colordict)}
-        self.colordict = colordict
-                    
-        return colordict
-    
-    def init_all_color_configs(self) -> None:
-        """
-        Initialize all possible color configurations for all colors in the lattice.
-        """
-        if self.colordict is None:
-            raise ValueError("Color dictionary not initialized yet. Run Lattice.init_colordict() first.")
-        
-        all_color_configs = {}
-        for color in self.colordict.keys():
-            all_color_configs[color] = self.color_configs(color)
-        
-        self.all_color_configs = all_color_configs
-
-        return all_color_configs
-    
-    def color_configs(self, color: int) -> list[dict[int, int]]:
-        """
-        Get a list of all complementarity configurations of a given color 
-        in the lattice. Each configuration is a dictionary {voxel_id: complementarity}, where
-        complementarity is either +1 or -1 and is multiplied to abs(color) to get the bond color
-        of those bonds on the voxel.
-        """
-        if self.colordict is None:
-            raise ValueError("Color dictionary not initialized yet. Run Lattice.init_colordict() first.")
-        
-        color_configs = []
-        seen_configs = set()
-
-        # Default configuration
-        default_color_config = {}
-        for voxel_id in self.colordict[color]:
-            voxel = self.get_voxel(voxel_id)
-            complementarity = voxel.get_complementarity(color)
-            default_color_config[voxel_id] = complementarity
-
-        self.default_color_config[color] = default_color_config
-
-        # Add default configuration to the list and set
-        color_configs.append(default_color_config)
-        seen_configs.add(tuple(sorted(default_color_config.items())))
-
-        # Get all voxel_ids that contain the color
-        voxel_ids = list(self.colordict[color])
-
-        # Iterate over all possible numbers of voxels to flip (1 to len(voxel_ids))
-        for r in range(1, len(voxel_ids) + 1):
-            # Generate all r-combinations of voxel_ids
-            for permutation in itertools.combinations(voxel_ids, r):
-                # Create a new color configuration after flipping
-                flipped_voxels = {}
-                for voxel_id in permutation:
-                    voxel = self.get_voxel(voxel_id)
-                    flipped_voxels.update(voxel.flip_complementarity(color))
-
-                # Merge flipped configuration with default configuration
-                new_color_config = default_color_config.copy()
-                new_color_config.update(flipped_voxels)
-
-                # Convert the configuration to a hashable format (tuple of sorted pairs)
-                new_config_tuple = tuple(sorted(new_color_config.items()))
-
-                # Check if this configuration is unique
-                if new_config_tuple not in seen_configs:
-                    color_configs.append(new_color_config)
-                    seen_configs.add(new_config_tuple)
-
-        return color_configs
-
-    
-    def apply_color_configs(self, color_configs: dict[int, dict[int, int]]) -> None:
-        for color, config in color_configs.items():
-            for voxel_id, complementarity in config.items():
-                voxel = self.get_voxel(voxel_id)
-                voxel.repaint_complement(color, complementarity)
-
-    def reset_color_config(self) -> None:
-        """
-        Reset the color configurations of all voxels to the default configuration.
-        """
-        self.apply_color_configs(self.default_color_config)
 
     # --- Internal methods ---
     def _is_unit_cell(lattice: np.ndarray) -> bool:

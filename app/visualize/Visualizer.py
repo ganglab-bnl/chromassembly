@@ -10,7 +10,7 @@ from ..widgets.ToolBar import ToolBar
 from .Voxel import Voxel
 from .Bond import Bond
 from .ColorDict import ColorDict
-from algorithm.Lattice import Lattice, CoordinateManager
+from algorithm.lattice.Lattice import Lattice
 
 class Visualizer(QWidget):
     def __init__(self):

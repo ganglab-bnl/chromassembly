@@ -5,7 +5,7 @@ from algorithm.Bond import Bond
 from algorithm.Lattice import Lattice
 from algorithm.symmetry_df import SymmetryDf
 from algorithm.Rotation import Rotater
-from algorithm.Relation import Relation
+from algorithm.symmetry.Relation import Relation
 
 class Mesovoxel:
     def __init__(self, lattice: Lattice):

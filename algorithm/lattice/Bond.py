@@ -1,7 +1,5 @@
-import numpy as np
-
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, Optional, ClassVar
+from typing import Dict, Tuple, Optional
 
 
 @dataclass
@@ -51,7 +49,7 @@ class Bond:
 class BondDict:
     """
     BondDict is the class which handles manipulation of all Bonds at once
-    for a single Voxel. For use in rotations, comparisons.
+    for a single Voxel. For use in rotations, relations.
 
     Corresponds to data required for octahedral voxels.
     """

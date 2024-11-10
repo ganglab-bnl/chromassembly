@@ -1,10 +1,9 @@
 """
 Class to create new Lattice objects with different binding flexibilities.
 """
-from algorithm.Lattice import Lattice
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond
-from itertools import combinations
+from algorithm.lattice.Lattice import Lattice
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Bond import Bond
 
 from copy import deepcopy
 
@@ -68,7 +67,9 @@ class BindingFlexibility:
     
     def binding_flexibility_3(self, max_cutoff_ratio: float =3/6) -> Lattice:
         lattice = deepcopy(self.lattice)
+
         for voxel in lattice.voxels:
+            # Check if the voxel's cutoff ratio is greater than our desired max
             if self.cutoff_ratio(voxel) > max_cutoff_ratio:
                 for bond in voxel.bonds.values():
                     if bond.type == "structural":

@@ -135,3 +135,116 @@ class ColorTree:
             print(f'\nColor {color}\n--')
             for voxel, complementarity in config.items():
                 print(f'Voxel{voxel}: {complementarity}.')
+
+
+class LatticeColorTree:
+    """Interface for extending lattice to work with ColorTree"""
+    def __init__(self, lattice: Lattice):
+        self.lattice = lattice
+    
+    def init_colordict(self) -> dict[int, list[int]]:
+        """
+        Get dictionary of all colors in the lattice and a list of their corresponding
+        Voxel IDs which contain that color (both color / complement).
+        """
+        colordict = {}
+        for voxel in self.voxels:
+            for bond in voxel.bonds.values():
+                # Don't initialize colordict if not all bonds are colored
+                if bond.color is None:
+                    raise ValueError(f"Missing colors: Uncolored bond {bond.get_label} on voxel{voxel.id}")
+                # Add the bond color to the dictionary
+                color = abs(bond.color)
+                if color not in colordict:
+                    # print(f"Creating new color entry: {color}, voxel{voxel.id}")
+                    colordict[color] = [voxel.id]
+                elif voxel.id not in colordict[color]:
+                    colordict[color].append(voxel.id)
+                    # print(f"Adding voxel{voxel.id} to color {color}")
+
+        # Sort the dictionary keys by ascending color
+        colordict = {key: colordict[key] for key in sorted(colordict)}
+        self.colordict = colordict
+                    
+        return colordict
+    
+    def init_all_color_configs(self) -> None:
+        """
+        Initialize all possible color configurations for all colors in the lattice.
+        """
+        if self.colordict is None:
+            raise ValueError("Color dictionary not initialized yet. Run Lattice.init_colordict() first.")
+        
+        all_color_configs = {}
+        for color in self.colordict.keys():
+            all_color_configs[color] = self.color_configs(color)
+        
+        self.all_color_configs = all_color_configs
+
+        return all_color_configs
+    
+    def color_configs(self, color: int) -> list[dict[int, int]]:
+        """
+        Get a list of all complementarity configurations of a given color 
+        in the lattice. Each configuration is a dictionary {voxel_id: complementarity}, where
+        complementarity is either +1 or -1 and is multiplied to abs(color) to get the bond color
+        of those bonds on the voxel.
+        """
+        if self.colordict is None:
+            raise ValueError("Color dictionary not initialized yet. Run Lattice.init_colordict() first.")
+        
+        color_configs = []
+        seen_configs = set()
+
+        # Default configuration
+        default_color_config = {}
+        for voxel_id in self.colordict[color]:
+            voxel = self.get_voxel(voxel_id)
+            complementarity = voxel.get_complementarity(color)
+            default_color_config[voxel_id] = complementarity
+
+        self.default_color_config[color] = default_color_config
+
+        # Add default configuration to the list and set
+        color_configs.append(default_color_config)
+        seen_configs.add(tuple(sorted(default_color_config.items())))
+
+        # Get all voxel_ids that contain the color
+        voxel_ids = list(self.colordict[color])
+
+        # Iterate over all possible numbers of voxels to flip (1 to len(voxel_ids))
+        for r in range(1, len(voxel_ids) + 1):
+            # Generate all r-combinations of voxel_ids
+            for permutation in itertools.combinations(voxel_ids, r):
+                # Create a new color configuration after flipping
+                flipped_voxels = {}
+                for voxel_id in permutation:
+                    voxel = self.get_voxel(voxel_id)
+                    flipped_voxels.update(voxel.flip_complementarity(color))
+
+                # Merge flipped configuration with default configuration
+                new_color_config = default_color_config.copy()
+                new_color_config.update(flipped_voxels)
+
+                # Convert the configuration to a hashable format (tuple of sorted pairs)
+                new_config_tuple = tuple(sorted(new_color_config.items()))
+
+                # Check if this configuration is unique
+                if new_config_tuple not in seen_configs:
+                    color_configs.append(new_color_config)
+                    seen_configs.add(new_config_tuple)
+
+        return color_configs
+
+    
+    def apply_color_configs(self, color_configs: dict[int, dict[int, int]]) -> None:
+        for color, config in color_configs.items():
+            for voxel_id, complementarity in config.items():
+                voxel = self.get_voxel(voxel_id)
+                voxel.repaint_complement(color, complementarity)
+
+    def reset_color_config(self) -> None:
+        """
+        Reset the color configurations of all voxels to the default configuration.
+        """
+        self.apply_color_configs(self.default_color_config)

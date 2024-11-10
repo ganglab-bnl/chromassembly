@@ -1,6 +1,6 @@
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond, BondDict
-from algorithm.Rotation import Rotater
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Bond import Bond, BondDict
+from algorithm.symmetry.Rotation import Rotater
 
 
 class Relation:

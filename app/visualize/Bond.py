@@ -1,7 +1,6 @@
 import pyqtgraph.opengl as gl
 import numpy as np
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond as AlgorithmBond
+from algorithm.lattice.Bond import Bond as AlgorithmBond
 from .ColorDict import ColorDict
 from ..config import AppConfig
 

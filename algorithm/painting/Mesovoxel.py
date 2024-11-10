@@ -1,15 +1,6 @@
-import numpy as np
-import pandas as pd
-from typing import Tuple, List
-import copy
-
-from algorithm.Voxel import Voxel
-from algorithm.Bond import Bond, BondDict
-from algorithm.Lattice import Lattice
-from algorithm.Surroundings import Surroundings
-from algorithm.SymmetryDf import SymmetryDf
-from algorithm.Rotation import Rotater
-from algorithm.Relation import Relation
+from algorithm.lattice.Voxel import Voxel
+from algorithm.lattice.Lattice import Lattice
+from algorithm.symmetry.Relation import Relation
 
 
 class MVoxel:
@@ -90,7 +81,7 @@ class MVoxel:
         found_equal = False
         for sym_label in symlist:
             rel = Relation.get_voxel_relation(voxel, mv, sym_label)
-            print(f"Relation ({rel}) between Voxel {voxel.id} and {self} with sym={sym_label}")
+            # print(f"Relation ({rel}) between Voxel {voxel.id} and {self} with sym={sym_label}")
             
             # Mapping logic based on the voxel-voxel relation
             if rel == "no relation":
@@ -129,7 +120,7 @@ class Mesovoxel:
         """
         self.painter = painter
         self.lattice = lattice
-        self.mvoxels: List[MVoxel] = []
+        self.mvoxels: list[MVoxel] = []
         self.voxels = {v.id: None for v in lattice.voxels} # None means there are no mvoxels assigned to it
 
         self.init_structural_voxels()
@@ -193,7 +184,7 @@ class Mesovoxel:
         return negation_parent, with_negation
 
     
-    def get_structural_voxels(self) -> List[MVoxel]:
+    def get_structural_voxels(self) -> list[MVoxel]:
         """Returns list of all structural MVoxels"""
         structural_voxels = []
         for mv in self.mvoxels:

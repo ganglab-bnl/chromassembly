@@ -2,10 +2,8 @@ import numpy as np
 import pandas as pd
 import logging
 
-from .Voxel import Voxel
-from .Lattice import Lattice
-from .Surroundings import Surroundings
-from .Rotation import NpRotationDict
+from algorithm.lattice.Lattice import Lattice
+from algorithm.symmetry.Rotation import NpRotationDict
 
 
 class SymmetryDf:
