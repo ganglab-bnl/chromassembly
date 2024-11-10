@@ -1,8 +1,5 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QPushButton, QLineEdit, QLabel, QGridLayout,
-                             QCheckBox, QMessageBox, QTabWidget)
-import numpy as np
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QTabWidget
 
 from .design.Designer import Designer
 from .visualize.Visualizer import Visualizer
