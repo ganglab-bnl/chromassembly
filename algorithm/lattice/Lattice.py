@@ -223,10 +223,13 @@ class Lattice:
             id += 1
 
         # Print all voxel indices and coordinates
-        ids = ', '.join(str(voxel.id) for voxel in voxel_list)
+        # ids = ', '.join(str(voxel.id) for voxel in voxel_list)
         # print(f'Initialized Voxels: {ids}')
-        coords = ', '.join(str(coord) for coord in coord_list)
+        # coords = ', '.join(str(coord) for coord in coord_list)
         # print(f'With coordinates: {coords}')
+
+        # for voxel in voxel_list:
+        #     print(f"init voxel_{voxel.id} ({voxel.material}): coords {voxel.coordinates}")
 
         return voxel_list, coord_list
     

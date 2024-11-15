@@ -24,18 +24,18 @@ class Surroundings:
 
         # How far down to go in each direction
         og_zlen, og_ylen, og_xlen = self.MinDesign_dimensions # original dimensions of MinDesign
-        z_repeats, x_repeats, y_repeats = self.tile_repeats # how many times MinDesign is repeated in xyz directions in FullSurroundings
+        z_repeats, y_repeats, x_repeats = self.tile_repeats # how many times MinDesign is repeated in xyz directions in FullSurroundings
 
         # Get halfway points for each direction
         # (x_0, y_0, z_0) corresponds to the (0,0,0) position of the middle MinDesign
         z_0 = floor(z_repeats / 2) * og_zlen
-        x_0 = floor(y_repeats / 2) * og_ylen
-        y_0 = floor(x_repeats / 2) * og_xlen
+        y_0 = floor(y_repeats / 2) * og_ylen
+        x_0 = floor(x_repeats / 2) * og_xlen
 
         # Get voxel's new coordinates within middle MinDesign
         vox_z = z_0 + voxel.np_index[0]
-        vox_x = x_0 + voxel.np_index[1]
-        vox_y = y_0 + voxel.np_index[2]
+        vox_y = y_0 + voxel.np_index[1]
+        vox_x = x_0 + voxel.np_index[2]
 
         max_og_len = max(og_zlen, og_ylen, og_xlen)
         extend_amt = floor(max_og_len / 2)
@@ -62,10 +62,10 @@ class Surroundings:
         z_len, y_len, x_len = lattice.MinDesign.shape
         self.MinDesign_dimensions = [z_len, y_len, x_len]
 
-        # I imagine z=layers, x=rows, y=columns
+        # I imagine z=layers, y=rows, x=columns
         z_repeats = ceil(final_len / z_len)
-        x_repeats = ceil(final_len / y_len) 
-        y_repeats = ceil(final_len / x_len) 
+        y_repeats = ceil(final_len / y_len) 
+        x_repeats = ceil(final_len / x_len) 
 
         # If x, y, or z repeats are even, add 1 to make them odd
         # (ensures the original voxel is in the center of FullSurroundings)

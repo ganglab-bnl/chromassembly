@@ -75,13 +75,30 @@ class Painter:
                 if self.verbose:
                     print(f"Paint new s_bond ({self.n_colors}):\nBetween voxel {s_voxel_id} ({bond.direction}) and voxel {partner_voxel.id} ({partner_bond.direction})\n")
 
-                # Iterative self symmetry painting
-                while self.painted_voxels:
-                    voxel = self.painted_voxels.pop()
-                    pv = self.self_sym_paint(voxel)
+        # Iterative self symmetry painting
+        while self.painted_voxels:
+            voxel = self.painted_voxels.pop()
+            pv = self.self_sym_paint(voxel)
+            self.painted_voxels.update(pv)
+
+        # Go through and map the structural colors onto the rest of the lattice
+        for mv in self.mesovoxel.mvoxels:
+            mv_voxel = mv.repr_voxel()
+            
+            # Go through every other voxel in its equivalence class and map structural bonds
+            for mv_child_id, symlist in self.lattice.symmetry_df.partner_symdict(mv_voxel.id).items():
+                if len(symlist) == 0 or symlist is None:
+                    continue
+                for sym_label in symlist:
+                    # sym_label = symlist[0] # Get any symmetry
+                    pv = self.map_paint(mv_voxel, mv_child_id, sym_label, with_negation=False)
                     self.painted_voxels.update(pv)
 
-                #TODO: include the newly painted voxels at the end in the s_voxel maplists
+        # Iterative self symmetry painting (again)
+        while self.painted_voxels:
+            voxel = self.painted_voxels.pop()
+            pv = self.self_sym_paint(voxel)
+            self.painted_voxels.update(pv)
 
     def comp_paint_lattice(self):
         """

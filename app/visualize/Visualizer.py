@@ -4,9 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout
 from PyQt6.QtGui import QColor
 import numpy as np
 import math
-import random
 
-from ..widgets.ToolBar import ToolBar
 from .Voxel import Voxel
 from .Bond import Bond
 from .ColorDict import ColorDict
@@ -35,12 +33,11 @@ class Visualizer(QWidget):
                            (0, 1, 0), (0, -1, 0),  # +/- y
                            (0, 0, 1), (0, 0, -1)]  # +/- z
         
-        # Create the lattice
-        default_lattice = Lattice(np.zeros((3, 3, 3)))
-        self.create_lattice(default_lattice)
-        self.view.setBackgroundColor(QColor("#efefef"))
+        # initialize with default lattice / view
+        self.lattice = Lattice(np.zeros((3, 3, 3)))
+        self.view_lattice(self.lattice)
 
-        # Add axes
+        self.view.setBackgroundColor(QColor("#efefef"))
         self.add_axes()
 
         
@@ -76,19 +73,33 @@ class Visualizer(QWidget):
         # Set the camera position to ensure the entire lattice is visible
         self.view.setCameraPosition(distance=distance)
 
-    def create_lattice(self, lattice: Lattice):
-        """Create lattice from Lattice object"""
+    def create_lattice(self, lattice: np.ndarray) -> Lattice:
+        """
+        Create a Lattice from a numpy array for use in other parts of the app
+        """
+        self.lattice = Lattice()
+
+    def view_lattice(self, lattice: Lattice):
+        """
+        Visualize the current lattice in self.lattice
+        
+        """
         # Compute the painting algorithm
-        lattice.compute_symmetries()
-        self.painter = Painter(lattice)
-        self.painter.paint_lattice()
+        if lattice is None:
+            lattice = self.lattice
+        
+        # lattice.compute_symmetries()
+        # self.painter = Painter(lattice)
+        # self.painter.paint_lattice()
 
         # Delete the current lattice
         self.view.items = []
 
         # Create the new lattice
         self.add_axes() # Re-add the axes
+
         n_layers, n_rows, n_columns = lattice.MinDesign.shape
+
         self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
 
         for voxel in lattice.voxels:
@@ -121,7 +132,7 @@ class Visualizer(QWidget):
     
 class RunVisualizer:
     
-    def __init__(self, lattice, app=None):
+    def __init__(self, lattice: Lattice, app=None):
         """Runs the window for a given lattice design"""
         import sys
         from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar
@@ -155,7 +166,7 @@ class RunVisualizer:
         self.mainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         
         # Draw the lattice structure of voxels + bonds
-        self.window.create_lattice(lattice)
+        self.window.view_lattice(lattice)
 
         self.mainWindow.show()
         self.app.exec()

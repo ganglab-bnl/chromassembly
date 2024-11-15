@@ -12,7 +12,7 @@ class FillDimensions(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.label = QLabel("Fill Lattice Dimensions")
+        self.label = QLabel("Fill Lattice")
         self._layout.addWidget(self.label)
 
         # Add a scroll area to a container holding the grid
@@ -64,10 +64,10 @@ class FillDimensions(QWidget):
                 widget.clear()
 
     def fillZeros(self):
-        """Fill all QLineEdit widgets with zeros."""
+        """Fill all empty QLineEdit widgets with zeros."""
         for i in range(self.gridLayout.count()):
             widget = self.gridLayout.itemAt(i).widget()
-            if isinstance(widget, QLineEdit):
+            if isinstance(widget, QLineEdit) and widget.text == "":
                 widget.setText('0')
     
     def saveLattice(self):
@@ -80,7 +80,7 @@ class FillDimensions(QWidget):
             if isinstance(widget, QLineEdit):
                 lattice.append(int(widget.text()))
         lattice = np.array(lattice).reshape(self.n_lay, self.n_row, self.n_col)
-        lattice = Lattice(lattice)
+        # lattice = Lattice(lattice)
         
         # Check if the parent widget has a 'lattice' attribute and set it
         self.parentWidget.setLattice(lattice)

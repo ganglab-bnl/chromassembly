@@ -6,7 +6,7 @@ from .FillDimensions import FillDimensions
 from algorithm.lattice.Lattice import Lattice
 
 class Designer(QWidget):
-    latticeSaved = pyqtSignal(Lattice)
+    latticeSaved = pyqtSignal(np.ndarray)
 
     def __init__(self):
         super().__init__()
@@ -65,7 +65,7 @@ class Designer(QWidget):
     def updateDimensions(self, rows, columns, layers):
         self.fillDimensionsWidget.updateGrid(rows, columns, layers)
 
-    def setLattice(self, lattice: Lattice):
+    def setLattice(self, lattice: np.ndarray):
         """
         Save lattice to class attributes and emit the latticeSaved signal
         """
