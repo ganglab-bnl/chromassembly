@@ -14,19 +14,21 @@ class Voxel:
                                   in the supplied direction
     """
     def __init__(self, id: int, material: int, coordinates: tuple[float, float, float],
-                 np_index: tuple[int, int, int]):
+                 np_index: tuple[int, int, int], type=None):
         """
         Initialize a Voxel object with a unique ID, material, and coordinates.
-        @param:
-            - id: the unique identifier for the Voxel
-            - material: the material cargo of the Voxel
-            - coordinates: the Voxel's coordinates in the Lattice.MinDesign
-            - np_index: The 'material' value's index into the MinDesign np.array
+        Args:
+            id: the unique identifier for the Voxel
+            material: the material cargo of the Voxel
+            coordinates: the Voxel's coordinates in the Lattice.MinDesign
+            np_index: The 'material' value's index into the MinDesign np.array
+            type: Either "structural" or "complementary" based on Painter output
         """
         self.id = id
         self.material = material
         self.coordinates = coordinates
         self.np_index = np_index
+        self.type = type
 
         # ----- Vertex information ----- #
         # Vertex positions for octahedral structures
@@ -157,6 +159,11 @@ class Voxel:
                 return bond.type
         return None
     
+    def set_type(self, type: str) -> None:
+        """
+        Set the type of the voxel to "structural" or "complementary"
+        """
+        self.type = type
     
     def repaint_complement(self, color: int, complement: int) -> None:
         """

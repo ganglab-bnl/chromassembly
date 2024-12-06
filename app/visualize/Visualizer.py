@@ -57,6 +57,15 @@ class Visualizer(QWidget):
 
 
     def adjust_camera_to_fit_lattice(self, x_dim, y_dim, z_dim):
+        """
+        Uses math to determine how far away to position the camera based on
+        the dimensions of voxels we want to visualize
+
+        Args:
+            x_dim: how many voxels long in x direction
+            y_dim: how many voxels long in y direction
+            z_dim: how many voxels long in z direction
+        """
         # Compute total length of the lattice in each dimension
         lattice_xlen = (self.voxel_radius*2 + self.voxel_distance) * x_dim
         lattice_ylen = (self.voxel_radius*2 + self.voxel_distance) * y_dim
@@ -73,45 +82,38 @@ class Visualizer(QWidget):
         # Set the camera position to ensure the entire lattice is visible
         self.view.setCameraPosition(distance=distance)
 
-    def create_lattice(self, lattice: np.ndarray) -> Lattice:
+    def clear_view(self) -> None:
+        """Clears all items from view"""
+        self.view.items = []
+
+    def create_lattice(self, input_lattice: np.ndarray) -> Lattice:
         """
         Create a Lattice from a numpy array for use in other parts of the app
         """
-        self.lattice = Lattice()
+        lattice = Lattice(input_lattice)
+        return lattice
 
-    def view_lattice(self, lattice: Lattice):
+    def view_voxels(self, voxels: list[Voxel]):
         """
-        Visualize the current lattice in self.lattice
-        
+        View all Voxel objects in the list. Uses the Voxel.coordinates to determine where in
+        the scene to visualize each object.
         """
-        # Compute the painting algorithm
-        if lattice is None:
-            lattice = self.lattice
-        
-        # lattice.compute_symmetries()
-        # self.painter = Painter(lattice)
-        # self.painter.paint_lattice()
+        self.clear_view()
+        self.add_axes() # re-add axes
 
-        # Delete the current lattice
-        self.view.items = []
+        # just initialize view with default distance away (it's fine...)
 
-        # Create the new lattice
-        self.add_axes() # Re-add the axes
-
-        n_layers, n_rows, n_columns = lattice.MinDesign.shape
-
-        self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
-
-        for voxel in lattice.voxels:
-
+        # create voxel objects for each voxel in the list
+        for voxel in voxels:
+            
+            # create bond objects attached to each voxel
             for _, bond in voxel.bond_dict.dict.items():
                 shaft, arrow = Bond.create_bond(bond)
                 self.view.addItem(shaft)
-
-                if arrow is not None:
+                if arrow is not None: # arrows are not drawn for non-colored bonds
                     self.view.addItem(arrow)
 
-            # Create the voxel object
+            # create the voxel object
             new_voxel = Voxel.create_voxel(
                 x=voxel.coordinates[0]*self.voxel_distance, 
                 y=voxel.coordinates[1]*self.voxel_distance, 
@@ -119,8 +121,30 @@ class Visualizer(QWidget):
                 color=self.colordict.get_color(voxel.material)
             )
             self.view.addItem(new_voxel)
-    
 
+
+    def view_lattice(self, lattice: Lattice):
+        """
+        Visualize the current lattice in self.lattice.
+        Since lattice.voxels corresponds to only MinDesign voxels, ignores extra layers
+        of unit cell. Let's add in unit cell viewing later! :p
+        """
+        # run the algorithm (not yet - let's refactor this into separate place)
+        # lattice.compute_symmetries()
+        # self.painter = Painter(lattice)
+        # self.painter.paint_lattice()
+
+        self.clear_view() # clear all items
+        self.add_axes() # re-add the axes
+
+        n_layers, n_rows, n_columns = lattice.MinDesign.shape
+        self.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
+
+        # Call other function to view voxels in mindesign
+        #TODO: add separate unit cell viewing
+        self.view_voxels(voxels=lattice.voxels)
+
+    
     def cleanup_gl_resources(self):
         """Removes items from view and clears the items list 
            (hopefully preventing jupyter kernel crash on rerun)"""
@@ -129,10 +153,9 @@ class Visualizer(QWidget):
 
         self.view.items = []
     
-    
 class RunVisualizer:
     
-    def __init__(self, lattice: Lattice, app=None):
+    def __init__(self, lattice: Lattice, voxels=None, app=None):
         """Runs the window for a given lattice design"""
         import sys
         from PyQt6.QtWidgets import QApplication, QMainWindow, QToolBar
@@ -166,7 +189,13 @@ class RunVisualizer:
         self.mainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         
         # Draw the lattice structure of voxels + bonds
-        self.window.view_lattice(lattice)
+        if voxels is not None:
+            # adjust camera to whatever the mindesign is
+            n_layers, n_rows, n_columns = lattice.MinDesign.shape
+            self.window.adjust_camera_to_fit_lattice(n_layers, n_rows, n_columns)
+            self.window.view_voxels(voxels)
+        else:
+            self.window.view_lattice(lattice)
 
         self.mainWindow.show()
         self.app.exec()

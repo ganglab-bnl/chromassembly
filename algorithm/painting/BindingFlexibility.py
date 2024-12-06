@@ -33,7 +33,7 @@ class BindingFlexibility:
         lattice = deepcopy(self.lattice)
         for voxel in lattice.voxels:
 
-            sym_partners = self.get_sympartners(voxel)
+            sym_partners = self.get_symvoxels(voxel)
             
             for sym_group in sym_partners:
                 color_dict = {}
@@ -133,7 +133,7 @@ class BindingFlexibility:
         # Bad end: Only one or the other is satisfied
         return valid_color
 
-    def get_sympartners(self, voxel) -> list:
+    def get_symvoxels(self, voxel) -> list:
         """
         Find all unique sets of partner_voxels on a voxel that have symmetry with each other.
         Return a list of lists, where each sublist contains the directions of the bond to the

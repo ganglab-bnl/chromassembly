@@ -110,55 +110,66 @@ class MVoxel:
         """Get a representative voxel for the MVoxel"""
         voxel_id = next(iter(self.maplist))
         return self.mesovoxel.lattice.get_voxel(voxel_id)
+        
+@dataclass
+class StructuralVoxel:
+    """Wrapper around structural voxels for mesovoxel"""
+    voxel: int
+    complementary_voxel: Optional[int] = None
+
+@dataclass
+class ComplementaryVoxel:
+    """Wrapper around complementary voxels for mesovoxel"""
+    voxel: int
+    structural_voxel: int
+
 
 class Mesovoxel:
     def __init__(self, lattice: Lattice, painter):
         """
-        Mesovoxel data structure, which is comprised of two sets
-        
-        (1) structural voxels:      clearly defined by symmetry alone
-        (2) complementary voxels:   starts empty, and we add voxels to it
-                                    1-by-1 as we paint bonds
+        Mesovoxel data structure, which is comprised a set of structural / complementary 
+        voxels. 
+            - The structural voxel set is defined clearly by symmetries alone
+            - The complementary voxel set starts empty, and we add voxels to it 
+              1-by-1 as we paint bonds.
         """
-        # parent lattice/painter classes
         self.painter = painter
         self.lattice = lattice
+        self.mvoxels: list[MVoxel] = []
+        self.voxels = {v.id: None for v in lattice.voxels} # None means there are no mvoxels assigned to it
 
-        # these two sets uniquely define the mesovoxel
-        self.structural_voxels: set[int] = self.init_structural_voxels()
-        self.complementary_voxels: set[int] = set([])
-        
         self.init_structural_voxels()
 
     def init_structural_voxels(self) -> set[int]:
         """
         Initialize a list of structural voxels based on the "lattice" attribute.
         Returns:
-            structural_voxels: A set of voxel ids (ints) of structural voxels in lattice
+            s_voxels: A set of structural voxel ids
         """
         # init with first voxel in lattice
-        v_0 = self.lattice.voxels[0]
-        v_0.set_type("structural")
-        structural_voxels = set([v_0.id]) 
+        structural_voxels = set([self.lattice.voxels[0].id]) 
         
         for voxel in self.lattice.voxels[1:]:
+            
             # check if voxel has symmetry with any current structural_voxels
             symvoxels = self.lattice.symmetry_df.get_symvoxels(voxel.id)
 
             # if no symmetries, add voxel to structural_voxels!
             if not any(sv in structural_voxels for sv in symvoxels):
-                voxel.set_type("structural")
-                structural_voxels.add(voxel.id)
+                structural_voxels.add(voxel.id) 
+        
+        # create new MVoxel instance for each structural voxel
+        for i, s_voxel_id in enumerate(structural_voxels):
+            self.voxels[s_voxel_id] = i
+            mv = MVoxel(
+                id=i,
+                voxel=s_voxel_id,
+                type="structural",
+                mesovoxel=self
+            )
+            self.mvoxels.append(mv)
 
-        return structural_voxels
-    
-
-    def in_mesovoxel(self, voxel) -> bool:
-        """Returns whether the given voxel is in one of two mesovoxel sets or not."""
-        voxel_id = voxel.id if isinstance(voxel, Voxel) else voxel
-        return voxel_id in self.structural_voxels or voxel_id in self.complementary_voxels
-
-    def find_mesoparent(self, voxel) -> dict[str, int]:
+    def find_mesoparent(self, voxel) -> tuple[MVoxel, bool]:
         """
         Find the best parent voxel in the mesovoxel for the given voxel.
         Voxels satisfying this will either be added to the parent voxel's maplist
@@ -168,23 +179,24 @@ class Mesovoxel:
             voxel (Voxel/int): Voxel to find mesoparent of
 
         Returns:
-            mesoparents: dict {"structural": voxel.id, "complementary": voxel.id}
+            Case 1 (MVoxel, False): Mesoparent found, without negation
+            Case 2 (MVoxel, True): Mesoparent found, with negation
+            Case 3 (None, False): Mesoparent not found, N/A
         """
-        mesoparents = dict()
+        voxel = voxel if isinstance(voxel, Voxel) else self.mesovoxel.lattice.get_voxel(voxel)
+        negation_parent = None
+        for mv in self.mvoxels:
+            can_map, with_negation = mv.can_map(voxel)
 
-        # find all s_voxels with symmetry to the given voxel
-        for s_voxel in self.structural_voxels:
-            symlist = self.lattice.symmetry_df.symlist(voxel, s_voxel)
-            if len(symlist) > 0:
-                mesoparents["structural"] = s_voxel
-
-        # also go thru c voxels
-        for c_voxel in self.complementary_voxels:
-            symlist = self.lattice.symmetry_df.symlist(voxel, c_voxel)
-            if len(symlist) > 0:
-                mesoparents["complementary"] = c_voxel
-
-        return mesoparents
+            if can_map and not with_negation:
+                return mv, with_negation
+            
+            # Note it down, but try to keep searching until we find non-negation
+            if can_map and with_negation: 
+                negation_parent = mv
+            
+        with_negation = True if negation_parent else False
+        return negation_parent, with_negation
 
     
     def get_structural_voxels(self) -> list[MVoxel]:
