@@ -1,6 +1,6 @@
-# CHROMAssembly
+# MOSES
 
-This repository provides the official implementation of the **CHROMAssembly algorithm** from the following paper.
+This repository provides the official implementation of the **MOSES algorithm** from the following paper.
 
 The problem statement is: given a lattice design with particles in certain positions, how can we color the edges to enable the DNA origami to _self assemble_ into the desired design?
 
